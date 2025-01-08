@@ -1,0 +1,353 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~
+  ~ WSO2 LLC. licenses this file to you under the Apache License,
+  ~ Version 2.0 (the "License"); you may not use this file except
+  ~ in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing,
+  ~ software distributed under the License is distributed on an
+  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  ~ KIND, either express or implied.  See the License for the
+  ~ specific language governing permissions and limitations
+  ~ under the License.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <parent>
+        <groupId>org.wso2</groupId>
+        <artifactId>wso2</artifactId>
+        <version>1.4</version>
+    </parent>
+
+    <groupId>org.wso2.carbon.identity.notification.push</groupId>
+    <modelVersion>4.0.0</modelVersion>
+    <version>1.0.0-SNAPSHOT</version>
+    <artifactId>identity-notification-push</artifactId>
+    <packaging>pom</packaging>
+    <name>WSO2 Carbon - Identity Notification Push</name>
+
+    <scm>
+        <url>https://github.com/wso2-extensions/identity-notification-push.git</url>
+        <developerConnection>scm:git:https://github.com/wso2-extensions/identity-notification-push.git
+        </developerConnection>
+        <connection>scm:git:https://github.com/wso2-extensions/identity-notification-push.git</connection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <modules>
+        <module>components/org.wso2.carbon.identity.notification.push.common</module>
+        <module>components/org.wso2.carbon.identity.notification.push.device.handler</module>
+        <module>components/org.wso2.carbon.identity.notification.push.provider</module>
+        <module>features/org.wso2.carbon.identity.notification.push.feature</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.base</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.core</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon</groupId>
+                <artifactId>org.wso2.carbon.user.core</artifactId>
+                <version>${carbon.kernel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon</groupId>
+                <artifactId>org.wso2.carbon.user.api</artifactId>
+                <version>${carbon.kernel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon</groupId>
+                <artifactId>org.wso2.carbon.utils</artifactId>
+                <version>${carbon.kernel.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.utils</groupId>
+                <artifactId>org.wso2.carbon.database.utils</artifactId>
+                <version>${org.wso2.carbon.database.utils.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.event.handler.notification</groupId>
+                <artifactId>org.wso2.carbon.identity.notification.sender.tenant.config</artifactId>
+                <version>${identity.notification.sender.tenant.config.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.orbit.com.nimbusds</groupId>
+                <artifactId>nimbus-jose-jwt</artifactId>
+                <version>${nimbusds.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>${json-smart.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.organization.management.core</groupId>
+                <artifactId>org.wso2.carbon.identity.organization.management.service</artifactId>
+                <version>${org.wso2.carbon.identity.organization.management.core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.notification.push</groupId>
+                <artifactId>org.wso2.carbon.identity.notification.push.device.handler</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.notification.push</groupId>
+                <artifactId>org.wso2.carbon.identity.notification.push.provider</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.notification.push</groupId>
+                <artifactId>org.wso2.carbon.identity.notification.push.common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.secret.mgt.core</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.orbit.com.google.firebase</groupId>
+                <artifactId>firebase-admin</artifactId>
+                <version>9.4.1.wso2v1</version>
+                <exclusions>
+                    <!-- Exclude Firestore -->
+                    <exclusion>
+                        <groupId>com.google.cloud</groupId>
+                        <artifactId>google-cloud-firestore</artifactId>
+                    </exclusion>
+                    <!-- Exclude Cloud Storage -->
+                    <exclusion>
+                        <groupId>com.google.cloud</groupId>
+                        <artifactId>google-cloud-storage</artifactId>
+                    </exclusion>
+                    <!-- Exclude gRPC dependencies if not needed -->
+                    <exclusion>
+                        <groupId>io.grpc</groupId>
+                        <artifactId>grpc-core</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>com.google.protobuf</groupId>
+                        <artifactId>protobuf-java</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.orbit.org.apache.httpcomponents</groupId>
+                <artifactId>httpclient5</artifactId>
+                <version>${httpclient5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.orbit.org.apache.httpcomponents</groupId>
+                <artifactId>httpcore5</artifactId>
+                <version>${httpcore5.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.orbit.com.google.auth-library-oauth2-http</groupId>
+                <artifactId>google-auth-library-oauth2-http</artifactId>
+                <version>${com.google.auth.osgi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.orbit.com.google.http-client</groupId>
+                <artifactId>google-http-client</artifactId>
+                <version>${com.google.api.http.clients.osgi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${com.google.code.gson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-logging</groupId>
+                <artifactId>commons-logging</artifactId>
+                <version>${commons.logging.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testng</groupId>
+                <artifactId>testng</artifactId>
+                <version>${testng.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-inline</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>buildnumber-maven-plugin</artifactId>
+                    <version>${maven.buildnumber.plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>create</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <doCheck>false</doCheck>
+                        <doUpdate>false</doUpdate>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${maven.checkstyleplugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>validate</id>
+                            <phase>validate</phase>
+                            <configuration>
+                                <configLocation>
+                                    https://raw.githubusercontent.com/wso2/code-quality-tools/v1.3/checkstyle/checkstyle.xml
+                                </configLocation>
+                                <suppressionsLocation>
+                                    https://raw.githubusercontent.com/wso2/code-quality-tools/v1.3/checkstyle/suppressions.xml
+                                </suppressionsLocation>
+                                <encoding>UTF-8</encoding>
+                                <consoleOutput>true</consoleOutput>
+                                <failsOnError>true</failsOnError>
+                                <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                            </configuration>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>${spotbugs-maven-plugin.version}</version>
+                    <configuration>
+                        <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+                        <effort>Max</effort>
+                        <threshold>Low</threshold>
+                        <failOnError>true</failOnError>
+                        <maxHeap>1024</maxHeap>
+                        <plugins>
+                            <plugin>
+                                <groupId>com.h3xstream.findsecbugs</groupId>
+                                <artifactId>findsecbugs-plugin</artifactId>
+                                <version>${findsecbugs-plugin.version}</version>
+                            </plugin>
+                        </plugins>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>analyze-compile</id>
+                            <phase>compile</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven.surefire.plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>maven-bundle-plugin</artifactId>
+                    <version>${maven.bundle.plugin.version}</version>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <obrRepository>NONE</obrRepository>
+                        <instructions>
+                            <SCM-Revision>${buildNumber}</SCM-Revision>
+                        </instructions>
+                    </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.felix</groupId>
+                    <artifactId>maven-bundle-plugin</artifactId>
+                    <version>${maven.bundle.plugin.version}</version>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <obrRepository>NONE</obrRepository>
+                        <instructions>
+                            <SCM-Revision>${buildNumber}</SCM-Revision>
+                        </instructions>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <properties>
+        <carbon.identity.framework.version>7.5.14</carbon.identity.framework.version>
+        <carbon.identity.framework.imp.pkg.version.range>[7.5.0, 8.0.0)</carbon.identity.framework.imp.pkg.version.range>
+        <org.wso2.carbon.identity.organization.management.core.version>1.1.15</org.wso2.carbon.identity.organization.management.core.version>
+        <org.wso2.carbon.identity.organization.management.core.version.range>[1.0.0, 2.0.0)</org.wso2.carbon.identity.organization.management.core.version.range>
+        <carbon.p2.plugin.version>1.5.3</carbon.p2.plugin.version>
+        <carbon.kernel.version>4.10.22</carbon.kernel.version>
+        <carbon.kernel.package.import.version.range>[4.5.0, 5.0.0)</carbon.kernel.package.import.version.range>
+        <org.wso2.carbon.database.utils.version>2.1.6</org.wso2.carbon.database.utils.version>
+        <org.wso2.carbon.database.utils.version.range>[2.0.0,3.0.0)</org.wso2.carbon.database.utils.version.range>
+        <identity.notification.sender.tenant.config.version>1.9.4</identity.notification.sender.tenant.config.version>
+        <identity.event.handler.notification.imp.pkg.version.range>[1.3.15, 2.0.0)</identity.event.handler.notification.imp.pkg.version.range>
+        <com.google.auth.osgi.version>1.20.0.wso2v1</com.google.auth.osgi.version>
+        <com.google.api.http.clients.osgi.version>1.43.3.wso2v1</com.google.api.http.clients.osgi.version>
+        <com.google.api.http.clients.osgi.version.range>[1.41.2,1.44.0)</com.google.api.http.clients.osgi.version.range>
+        <com.google.api.clients.googleapis.osgi.version>2.2.0.wso2v1</com.google.api.clients.googleapis.osgi.version>
+        <com.google.api.clients.googleapis.osgi.version.range>[2.0.0,3.0.0)</com.google.api.clients.googleapis.osgi.version.range>
+        <com.google.code.gson.version>2.8.9</com.google.code.gson.version>
+        <com.google.code.gson.osgi.version.range>[2.3.1,3.0.0)</com.google.code.gson.osgi.version.range>
+
+        <nimbusds.version>7.9.0.wso2v1</nimbusds.version>
+        <nimbusds.osgi.version.range>[7.3.0,8.0.0)</nimbusds.osgi.version.range>
+        <json-smart.version>2.4.10</json-smart.version>
+        <json-smart.osgi.version.range>[2.3.0,3.0.0)</json-smart.osgi.version.range>
+        <httpclient5.version>5.4.1.wso2v1</httpclient5.version>
+        <httpclient5.osgi.version.range>[5.0.0,6.0.0)</httpclient5.osgi.version.range>
+        <httpcore5.version>5.3.1.wso2v1</httpcore5.version>
+        <httpcore5.osgi.version.range>[5.0.0,6.0.0)</httpcore5.osgi.version.range>
+        <commons.logging.version>1.2</commons.logging.version>
+        <org.apache.commons.logging.range>[1.2.0,2.0.0)</org.apache.commons.logging.range>
+
+        <maven.checkstyleplugin.version>3.1.0</maven.checkstyleplugin.version>
+        <findsecbugs-plugin.version>1.10.1</findsecbugs-plugin.version>
+        <spotbugs-maven-plugin.version>4.7.2.1</spotbugs-maven-plugin.version>
+        <maven.bundle.plugin.version>3.2.0</maven.bundle.plugin.version>
+
+        <testng.version>6.9.10</testng.version>
+        <mockito.version>3.8.0</mockito.version>
+
+        <carbon.user.api.imp.pkg.version.range>[1.0.1, 2.0.0)</carbon.user.api.imp.pkg.version.range>
+        <osgi.framework.imp.pkg.version.range>[1.7.0, 2.0.0)</osgi.framework.imp.pkg.version.range>
+        <osgi.service.component.imp.pkg.version.range>[1.2.0, 2.0.0)</osgi.service.component.imp.pkg.version.range>
+        <imp.pkg.version.javax.servlet>[2.6.0, 3.0.0)</imp.pkg.version.javax.servlet>
+    </properties>
+
+</project>
