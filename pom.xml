@@ -126,7 +126,7 @@
             <dependency>
                 <groupId>org.wso2.orbit.com.google.firebase</groupId>
                 <artifactId>firebase-admin</artifactId>
-                <version>9.4.1.wso2v1</version>
+                <version>${firebase-admin.version}</version>
                 <exclusions>
                     <!-- Exclude Firestore -->
                     <exclusion>
@@ -148,6 +148,16 @@
                         <artifactId>protobuf-java</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.orbit.com.google.api</groupId>
+                <artifactId>api-common</artifactId>
+                <version>${api-common.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.orbit.com.google.guava</groupId>
+                <artifactId>failureaccess</artifactId>
+                <version>${failureaccess.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.wso2.orbit.org.apache.httpcomponents</groupId>
@@ -335,6 +345,10 @@
         <httpcore5.osgi.version.range>[5.0.0,6.0.0)</httpcore5.osgi.version.range>
         <commons.logging.version>1.2</commons.logging.version>
         <org.apache.commons.logging.range>[1.2.0,2.0.0)</org.apache.commons.logging.range>
+
+        <firebase-admin.version>9.4.1.wso2v1</firebase-admin.version>
+        <api-common.version>2.42.0.wso2v1</api-common.version>
+        <failureaccess.version>1.0.2.wso2v1</failureaccess.version>
 
         <maven.checkstyleplugin.version>3.1.0</maven.checkstyleplugin.version>
         <findsecbugs-plugin.version>1.10.1</findsecbugs-plugin.version>

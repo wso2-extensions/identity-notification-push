@@ -44,6 +44,14 @@
             <artifactId>firebase-admin</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wso2.orbit.com.google.api</groupId>
+            <artifactId>api-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.orbit.com.google.guava</groupId>
+            <artifactId>failureaccess</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.orbit.com.google.auth-library-oauth2-http</groupId>
             <artifactId>google-auth-library-oauth2-http</artifactId>
         </dependency>
