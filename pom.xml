@@ -262,7 +262,7 @@
                     <artifactId>spotbugs-maven-plugin</artifactId>
                     <version>${spotbugs-maven-plugin.version}</version>
                     <configuration>
-                        <excludeFilterFile>/Users/ziyamsanthosh/Documents/IdentityServer/identity-notification-push-1/spotbugs-exclude.xml</excludeFilterFile>
+                        <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
                         <effort>Max</effort>
                         <threshold>Low</threshold>
                         <failOnError>true</failOnError>
