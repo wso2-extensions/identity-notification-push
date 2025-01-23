@@ -41,7 +41,7 @@
 
     <modules>
         <module>components/org.wso2.carbon.identity.notification.push.common</module>
-        <module>components/org.wso2.carbon.identity.notification.push.device.handler</module>
+<!--        <module>components/org.wso2.carbon.identity.notification.push.device.handler</module>-->
         <module>components/org.wso2.carbon.identity.notification.push.provider</module>
         <module>features/org.wso2.carbon.identity.notification.push.feature</module>
     </modules>

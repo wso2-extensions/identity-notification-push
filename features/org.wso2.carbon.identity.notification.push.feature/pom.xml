@@ -37,10 +37,10 @@
             <groupId>org.wso2.carbon.identity.notification.push</groupId>
             <artifactId>org.wso2.carbon.identity.notification.push.common</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.wso2.carbon.identity.notification.push</groupId>
-            <artifactId>org.wso2.carbon.identity.notification.push.device.handler</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.wso2.carbon.identity.notification.push</groupId>-->
+<!--            <artifactId>org.wso2.carbon.identity.notification.push.device.handler</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>org.wso2.carbon.identity.notification.push</groupId>
             <artifactId>org.wso2.carbon.identity.notification.push.provider</artifactId>
@@ -56,6 +56,14 @@
         <dependency>
             <groupId>org.wso2.orbit.org.apache.httpcomponents</groupId>
             <artifactId>httpcore5</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.orbit.com.google.api</groupId>
+            <artifactId>api-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.orbit.com.google.guava</groupId>
+            <artifactId>failureaccess</artifactId>
         </dependency>
     </dependencies>
 
@@ -81,11 +89,13 @@
                             </adviceFile>
                             <bundles>
                                 <bundleDef>org.wso2.carbon.identity.notification.push:org.wso2.carbon.identity.notification.push.common</bundleDef>
-                                <bundleDef>org.wso2.carbon.identity.notification.push:org.wso2.carbon.identity.notification.push.device.handler</bundleDef>
+<!--                                <bundleDef>org.wso2.carbon.identity.notification.push:org.wso2.carbon.identity.notification.push.device.handler</bundleDef>-->
                                 <bundleDef>org.wso2.carbon.identity.notification.push:org.wso2.carbon.identity.notification.push.provider</bundleDef>
                                 <bundleDef>org.wso2.orbit.com.google.firebase:firebase-admin</bundleDef>
                                 <bundleDef>org.wso2.orbit.org.apache.httpcomponents:httpclient5</bundleDef>
                                 <bundleDef>org.wso2.orbit.org.apache.httpcomponents:httpcore5</bundleDef>
+                                <bundleDef>org.wso2.orbit.com.google.api:api-common</bundleDef>
+                                <bundleDef>org.wso2.orbit.com.google.guava:failureaccess</bundleDef>
                             </bundles>
                         </configuration>
                     </execution>
