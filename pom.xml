@@ -354,7 +354,7 @@
         <commons.logging.version>1.2</commons.logging.version>
         <org.apache.commons.logging.range>[1.2.0,2.0.0)</org.apache.commons.logging.range>
 
-        <firebase-admin.version>9.4.1.wso2v1</firebase-admin.version>
+        <firebase-admin.version>9.4.2.wso2v1</firebase-admin.version>
         <api-common.version>2.42.0.wso2v1</api-common.version>
         <failureaccess.version>1.0.2.wso2v1</failureaccess.version>
 
