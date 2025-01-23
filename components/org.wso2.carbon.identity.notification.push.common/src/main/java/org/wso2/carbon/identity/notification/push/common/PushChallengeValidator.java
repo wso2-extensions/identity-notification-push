@@ -147,6 +147,7 @@ public class PushChallengeValidator {
      * Validate the challenge received from the device.
      *
      * @param claimsSet JWT claim set
+     * @param challengeType Challenge type
      * @param challenge Challenge received from the device
      * @param deviceId  Device ID
      * @return Boolean value for challenge validation
