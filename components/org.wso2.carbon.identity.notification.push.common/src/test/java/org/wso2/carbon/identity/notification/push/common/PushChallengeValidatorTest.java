@@ -36,6 +36,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertNotNull;
 
+/**
+ * Test class for PushChallengeValidator.
+ */
 public class PushChallengeValidatorTest {
 
     @Mock
@@ -53,6 +56,7 @@ public class PushChallengeValidatorTest {
 
     @BeforeTest
     public void setUp() throws ParseException {
+
         MockitoAnnotations.openMocks(this);
 
         validJwt = "eyJhbGciOiJSUzI1NiIsImRpZCI6IjM4NWViMDg1LWQ1NzUtNDU1ZS1iYjdhLTE5MmJmYTE1NTVkMCIsInR5cCI6IkpXVCJ9." +
@@ -79,6 +83,7 @@ public class PushChallengeValidatorTest {
 
     @Test
     public void testGetValidatedClaimSetWithValidToken() throws Exception {
+
         try (MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)) {
             mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
 
@@ -109,23 +114,19 @@ public class PushChallengeValidatorTest {
 
         try (MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)) {
             mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
-            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(null);
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
             PushChallengeValidator.getValidatedClaimSet(validJwt, publicKey);
         }
     }
 
-    @Test
-    public void testGetValidatedClaimSetWithValidSignature() throws Exception {
-
-        SignedJWT signedJWT = SignedJWT.parse(validJwt);
-        Assert.assertTrue(PushChallengeValidator.validateSignature(publicKey, signedJWT));
-    }
-
-    @Test
+    @Test(expectedExceptions = PushTokenValidationException.class)
     public void testGetValidatedClaimSetWithInvalidSignature() throws Exception {
 
-        SignedJWT signedJWT = SignedJWT.parse(validJwt);
-        Assert.assertFalse(PushChallengeValidator.validateSignature(invalidPublicKey, signedJWT));
+        try (MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)) {
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(null);
+            PushChallengeValidator.getValidatedClaimSet(validJwt, invalidPublicKey);
+        }
     }
 
     @Test(expectedExceptions = PushTokenValidationException.class)
@@ -135,32 +136,6 @@ public class PushChallengeValidatorTest {
             mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
             when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
             when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
-            when(mockSignedJWT.verify(any())).thenReturn(true);
-            PushChallengeValidator.getValidatedClaimSet(validJwt, publicKey);
-        }
-    }
-
-    @Test(expectedExceptions = PushTokenValidationException.class)
-    public void testGetValidatedClaimSetWithNotActiveToken() throws Exception {
-
-        try (MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)) {
-            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
-            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
-            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
-            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
-            when(mockSignedJWT.verify(any())).thenReturn(true);
-            PushChallengeValidator.getValidatedClaimSet(validJwt, publicKey);
-        }
-    }
-
-    @Test(expectedExceptions = PushTokenValidationException.class)
-    public void testGetValidatedClaimSetWithNoNotBeforeTime() throws Exception {
-
-        try (MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)) {
-            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
-            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
-            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
-            when(mockClaimsSet.getNotBeforeTime()).thenReturn(null);
             when(mockSignedJWT.verify(any())).thenReturn(true);
             PushChallengeValidator.getValidatedClaimSet(validJwt, publicKey);
         }

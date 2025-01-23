@@ -18,41 +18,56 @@
 
 package org.wso2.carbon.identity.notification.push.provider.model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * Model class to hold push device data.
+ * Model class for push sender data.
  */
-public class PushDeviceData {
+public class PushSenderData {
 
-    private String deviceToken;
-    private String deviceHandle;
+    private String name;
     private String provider;
+    private String providerId;
+    private Map<String, String> properties = new HashMap<>();
 
-    /**
-     * Constructor to initialize the push device data.
-     *
-     * @param deviceToken   Device token.
-     * @param deviceHandle  Device handle.
-     * @param provider      Provider.
-     */
-    public PushDeviceData(String deviceToken, String deviceHandle, String provider) {
+    public String getProviderId() {
 
-        this.deviceToken = deviceToken;
-        this.deviceHandle = deviceHandle;
-        this.provider = provider;
+        return providerId;
     }
 
-    public String getDeviceToken() {
+    public void setProviderId(String providerId) {
 
-        return deviceToken;
+        this.providerId = providerId;
     }
 
-    public String getDeviceHandle() {
+    public String getName() {
 
-        return deviceHandle;
+        return name;
+    }
+
+    public void setName(String name) {
+
+        this.name = name;
     }
 
     public String getProvider() {
 
         return provider;
+    }
+
+    public void setProvider(String provider) {
+
+        this.provider = provider;
+    }
+
+    public Map<String, String> getProperties() {
+
+        return properties;
+    }
+
+    public void setProperties(Map<String, String> properties) {
+
+        this.properties = properties;
     }
 }

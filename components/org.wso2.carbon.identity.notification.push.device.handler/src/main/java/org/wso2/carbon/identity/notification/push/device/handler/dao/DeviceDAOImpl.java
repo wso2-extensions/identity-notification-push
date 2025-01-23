@@ -54,7 +54,6 @@ public class DeviceDAOImpl implements DeviceDAO {
             statement.setString(PushDeviceHandlerConstants.ColumnNames.DEVICE_HANDLE, device.getDeviceHandle());
             statement.setString(PushDeviceHandlerConstants.ColumnNames.PUBLIC_KEY, device.getPublicKey());
             statement.setString(PushDeviceHandlerConstants.ColumnNames.PROVIDER, device.getProvider());
-            statement.setString(PushDeviceHandlerConstants.ColumnNames.PROVIDER_ID, device.getProviderId());
             statement.setInt(PushDeviceHandlerConstants.ColumnNames.TENANT_ID, tenantId);
             statement.executeUpdate();
             IdentityDatabaseUtil.commitTransaction(connection);
@@ -116,7 +115,6 @@ public class DeviceDAOImpl implements DeviceDAO {
                     device.setDeviceHandle(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_HANDLE));
                     device.setPublicKey(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PUBLIC_KEY));
                     device.setProvider(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PROVIDER));
-                    device.setProviderId(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PROVIDER_ID));
                 }
             }
         } catch (SQLException e) {
@@ -147,7 +145,6 @@ public class DeviceDAOImpl implements DeviceDAO {
                     device.setDeviceHandle(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_HANDLE));
                     device.setPublicKey(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PUBLIC_KEY));
                     device.setProvider(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PROVIDER));
-                    device.setProviderId(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PROVIDER_ID));
                 }
             }
         } catch (SQLException e) {

@@ -1,3 +1,21 @@
+/*
+ * Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ *
+ * WSO2 LLC. licenses this file to you under the Apache License,
+ * Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 package org.wso2.carbon.identity.notification.push.provider.impl;
 
 import com.google.auth.oauth2.GoogleCredentials;
@@ -17,13 +35,12 @@ import org.wso2.carbon.identity.notification.push.provider.exception.PushProvide
 import org.wso2.carbon.identity.notification.push.provider.internal.ProviderDataHolder;
 import org.wso2.carbon.identity.notification.push.provider.model.PushDeviceData;
 import org.wso2.carbon.identity.notification.push.provider.model.PushNotificationData;
-import org.wso2.carbon.identity.notification.sender.tenant.config.dto.PushSenderDTO;
+import org.wso2.carbon.identity.notification.push.provider.model.PushSenderData;
 import org.wso2.carbon.identity.secret.mgt.core.SecretManager;
 import org.wso2.carbon.identity.secret.mgt.core.SecretResolveManager;
 import org.wso2.carbon.identity.secret.mgt.core.exception.SecretManagementException;
 import org.wso2.carbon.identity.secret.mgt.core.model.ResolvedSecret;
 import org.wso2.carbon.identity.secret.mgt.core.model.Secret;
-import org.wso2.carbon.identity.secret.mgt.core.model.SecretType;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -45,6 +62,7 @@ public class FCMPushProvider implements PushProvider {
     private static final Log log = LogFactory.getLog(FCMPushProvider.class);
     private static final String FCM_PROVIDER_NAME = "FCM";
     private static final String FCM_APP_PREFIX = "FirebaseApp-";
+    private static final String FCM_SECRET_REFERENCE = "FCM-credentials";
 
     @Override
     public String getName() {
@@ -53,14 +71,14 @@ public class FCMPushProvider implements PushProvider {
     }
 
     @Override
-    public void sendNotification(PushNotificationData pushNotificationData, PushSenderDTO pushSenderDTO,
+    public void sendNotification(PushNotificationData pushNotificationData, PushSenderData pushSenderData,
                                  String tenantDomain) throws PushProviderException {
 
-        String appName = FCM_APP_PREFIX + pushSenderDTO.getProviderId();
+        String appName = FCM_APP_PREFIX + pushSenderData.getProviderId();
 
         if (FirebaseApp.getApps().stream().noneMatch(app -> app.getName().equals(appName))) {
 
-            Map<String, String> processedProperties = this.preProcessProperties(pushSenderDTO);
+            Map<String, String> processedProperties = this.preProcessProperties(pushSenderData);
             String serviceAccountString = processedProperties.get(FCM_SERVICE_ACCOUNT_SECRET);
             if (StringUtils.isBlank(serviceAccountString)) {
                 throw new PushProviderException("Service account credentials are not provided for FCM push provider.");
@@ -105,27 +123,27 @@ public class FCMPushProvider implements PushProvider {
     }
 
     @Override
-    public void registerDevice(PushDeviceData device, PushSenderDTO pushSender) throws PushProviderException {
+    public void registerDevice(PushDeviceData device, PushSenderData pushSenderData) throws PushProviderException {
 
         // FCM does not require any registration to be done on its side. Hence, the method is not implemented.
     }
 
     @Override
-    public void unregisterDevice(PushDeviceData device, PushSenderDTO pushSender) throws PushProviderException {
+    public void unregisterDevice(PushDeviceData device, PushSenderData pushSenderData) throws PushProviderException {
 
         // FCM does not require any unregistration to be done on its side. Hence, the method is not implemented.
     }
 
     @Override
-    public void updateDevice(PushDeviceData device, PushSenderDTO pushSender) throws PushProviderException {
+    public void updateDevice(PushDeviceData device, PushSenderData pushSenderData) throws PushProviderException {
 
         // FCM does not require any update to be done on its side. Hence, the method is not implemented.
     }
 
     @Override
-    public Map<String, String> preProcessProperties(PushSenderDTO pushSenderDTO) throws PushProviderException {
+    public Map<String, String> preProcessProperties(PushSenderData pushSenderData) throws PushProviderException {
 
-        Map<String, String> properties = new HashMap<>(pushSenderDTO.getProperties());
+        Map<String, String> properties = new HashMap<>(pushSenderData.getProperties());
         String serviceAccountString = properties.get(FCM_SERVICE_ACCOUNT_SECRET);
         if (StringUtils.isBlank(serviceAccountString)) {
             PushProviderConstants.ErrorMessages error =
@@ -139,9 +157,9 @@ public class FCMPushProvider implements PushProvider {
     }
 
     @Override
-    public Map<String, String> postProcessProperties(PushSenderDTO pushSenderDTO) throws PushProviderException {
+    public Map<String, String> postProcessProperties(PushSenderData pushSenderData) throws PushProviderException {
 
-        Map<String, String> properties = new HashMap<>(pushSenderDTO.getProperties());
+        Map<String, String> properties = new HashMap<>(pushSenderData.getProperties());
         String serviceAccountString = properties.get(FCM_SERVICE_ACCOUNT_SECRET);
         if (StringUtils.isBlank(serviceAccountString)) {
             PushProviderConstants.ErrorMessages error =
@@ -155,18 +173,18 @@ public class FCMPushProvider implements PushProvider {
     }
 
     @Override
-    public void updateCredentials(PushSenderDTO pushSender) throws PushProviderException {
+    public void updateCredentials(PushSenderData pushSenderData) throws PushProviderException {
 
-        String appName = FCM_APP_PREFIX + pushSender.getProviderId();
+        String appName = FCM_APP_PREFIX + pushSenderData.getProviderId();
         FirebaseApp.getApps().stream().filter(app -> app.getName().equals(appName)).forEach(FirebaseApp::delete);
     }
 
     @Override
-    public Map<String, String> storePushProviderSecretProperties(PushSenderDTO pushSender)
+    public Map<String, String> storePushProviderSecretProperties(PushSenderData pushSenderData)
             throws PushProviderException {
 
         try {
-            Map<String, String> properties = new HashMap<>(pushSender.getProperties());
+            Map<String, String> properties = new HashMap<>(pushSenderData.getProperties());
             String serviceAccountContent = properties.get(FCM_SERVICE_ACCOUNT_SECRET);
             if (StringUtils.isBlank(serviceAccountContent)) {
                 PushProviderConstants.ErrorMessages error =
@@ -174,21 +192,18 @@ public class FCMPushProvider implements PushProvider {
                 throw new PushProviderException(error.getCode(), error.getMessage() + FCM_SERVICE_ACCOUNT_SECRET);
             }
             SecretManager secretManager = ProviderDataHolder.getInstance().getSecretManager();
-            String secretName = constructSecretName(pushSender.getProviderId(), FCM_SERVICE_ACCOUNT_SECRET);
-            if (secretManager.isSecretExist(PUSH_PROVIDER_SECRET_TYPE, secretName)) {
+            if (secretManager.isSecretExist(PUSH_PROVIDER_SECRET_TYPE, FCM_SECRET_REFERENCE)) {
                 // Update the existing secret.
-                secretManager.updateSecretValue(PUSH_PROVIDER_SECRET_TYPE, secretName, serviceAccountContent);
+                secretManager.updateSecretValue(PUSH_PROVIDER_SECRET_TYPE, FCM_SECRET_REFERENCE, serviceAccountContent);
             } else {
                 // Add the new secret.
                 Secret newSecret = new Secret();
                 newSecret.setSecretType(PUSH_PROVIDER_SECRET_TYPE);
-                newSecret.setSecretName(secretName);
+                newSecret.setSecretName(FCM_SECRET_REFERENCE);
                 newSecret.setSecretValue(serviceAccountContent);
                 secretManager.addSecret(PUSH_PROVIDER_SECRET_TYPE, newSecret);
             }
-            SecretType secretType = secretManager.getSecretType(PUSH_PROVIDER_SECRET_TYPE);
-            String secretReference = constructSecretReference(secretType.getId(), secretName);
-            properties.put(FCM_SERVICE_ACCOUNT_SECRET, secretReference);
+            properties.put(FCM_SERVICE_ACCOUNT_SECRET, FCM_SECRET_REFERENCE);
             return properties;
         } catch (SecretManagementException e) {
             PushProviderConstants.ErrorMessages error =
@@ -198,11 +213,11 @@ public class FCMPushProvider implements PushProvider {
     }
 
     @Override
-    public Map<String, String> retrievePushProviderSecretProperties(PushSenderDTO pushSender)
+    public Map<String, String> retrievePushProviderSecretProperties(PushSenderData pushSenderData)
             throws PushProviderException {
 
         try {
-            Map<String, String> properties = new HashMap<>(pushSender.getProperties());
+            Map<String, String> properties = new HashMap<>(pushSenderData.getProperties());
             String serviceAccountContent = properties.get(FCM_SERVICE_ACCOUNT_SECRET);
             if (StringUtils.isBlank(serviceAccountContent)) {
                 PushProviderConstants.ErrorMessages error =
@@ -212,10 +227,9 @@ public class FCMPushProvider implements PushProvider {
 
             SecretManager secretManager = ProviderDataHolder.getInstance().getSecretManager();
             SecretResolveManager secretResolveManager = ProviderDataHolder.getInstance().getSecretResolveManager();
-            String secretName = constructSecretName(pushSender.getProviderId(), FCM_SERVICE_ACCOUNT_SECRET);
-            if (secretManager.isSecretExist(PUSH_PROVIDER_SECRET_TYPE, secretName)) {
+            if (secretManager.isSecretExist(PUSH_PROVIDER_SECRET_TYPE, FCM_SECRET_REFERENCE)) {
                 ResolvedSecret resolvedSecret =
-                        secretResolveManager.getResolvedSecret(PUSH_PROVIDER_SECRET_TYPE, secretName);
+                        secretResolveManager.getResolvedSecret(PUSH_PROVIDER_SECRET_TYPE, FCM_SECRET_REFERENCE);
                 properties.put(FCM_SERVICE_ACCOUNT_SECRET, resolvedSecret.getResolvedSecretValue());
                 return properties;
             } else {
@@ -231,30 +245,19 @@ public class FCMPushProvider implements PushProvider {
     }
 
     @Override
-    public void deletePushProviderSecretProperties(PushSenderDTO pushSender)
+    public void deletePushProviderSecretProperties(PushSenderData pushSenderData)
             throws PushProviderException {
 
         try {
             SecretManager secretManager = ProviderDataHolder.getInstance().getSecretManager();
-            String secretName = constructSecretName(pushSender.getProviderId(), FCM_SERVICE_ACCOUNT_SECRET);
-            if (secretManager.isSecretExist(PUSH_PROVIDER_SECRET_TYPE, secretName)) {
-                secretManager.deleteSecret(PUSH_PROVIDER_SECRET_TYPE, secretName);
+            if (secretManager.isSecretExist(PUSH_PROVIDER_SECRET_TYPE, FCM_SECRET_REFERENCE)) {
+                secretManager.deleteSecret(PUSH_PROVIDER_SECRET_TYPE, FCM_SECRET_REFERENCE);
             }
         } catch (SecretManagementException e) {
             PushProviderConstants.ErrorMessages error =
                     PushProviderConstants.ErrorMessages.ERROR_WHILE_DELETING_SECRETS_OF_PUSH_PROVIDER;
             throw new PushProviderException(error.getCode(), error.getMessage(), e);
         }
-    }
-
-    private String constructSecretName(String providerId, String secretAttributeName) {
-
-        return providerId + ":" + secretAttributeName;
-    }
-
-    private String constructSecretReference(String secretTypeId, String secretName) {
-
-        return secretTypeId + ":" + secretName;
     }
 
     /**

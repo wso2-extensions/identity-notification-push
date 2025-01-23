@@ -29,6 +29,8 @@ import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceHandlerService;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceRegistrationContextManager;
+import org.wso2.carbon.identity.notification.push.device.handler.dao.DeviceDAO;
+import org.wso2.carbon.identity.notification.push.device.handler.dao.DeviceDAOImpl;
 import org.wso2.carbon.identity.notification.push.device.handler.impl.DeviceHandlerServiceImpl;
 import org.wso2.carbon.identity.notification.push.device.handler.impl.DeviceRegistrationContextManagerImpl;
 import org.wso2.carbon.identity.notification.push.provider.PushProvider;
@@ -50,13 +52,13 @@ public class PushDeviceHandlerServiceComponent {
     protected void activate(ComponentContext context) {
 
         try {
-            DeviceHandlerService deviceHandlerService = new DeviceHandlerServiceImpl();
             DeviceRegistrationContextManager deviceRegistrationContextManager =
                     new DeviceRegistrationContextManagerImpl();
+            DeviceDAO deviceDAO = new DeviceDAOImpl();
+            DeviceHandlerService deviceHandlerService =
+                    new DeviceHandlerServiceImpl(deviceRegistrationContextManager, deviceDAO);
             context.getBundleContext().registerService(
                     DeviceHandlerService.class.getName(), deviceHandlerService, null);
-            context.getBundleContext().registerService(
-                    DeviceRegistrationContextManager.class.getName(), deviceRegistrationContextManager, null);
         } catch (Throwable e) {
             LOG.error("Error occurred while activating Push Device Handler Service Component", e);
         }

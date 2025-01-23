@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.notification.push.device.handler.impl;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -29,9 +28,7 @@ import org.wso2.carbon.identity.notification.push.common.PushChallengeValidator;
 import org.wso2.carbon.identity.notification.push.common.exception.PushTokenValidationException;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceHandlerService;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceRegistrationContextManager;
-import org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants;
 import org.wso2.carbon.identity.notification.push.device.handler.dao.DeviceDAO;
-import org.wso2.carbon.identity.notification.push.device.handler.dao.DeviceDAOImpl;
 import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerClientException;
 import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerException;
 import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerServerException;
@@ -43,6 +40,7 @@ import org.wso2.carbon.identity.notification.push.device.handler.model.Registrat
 import org.wso2.carbon.identity.notification.push.provider.PushProvider;
 import org.wso2.carbon.identity.notification.push.provider.exception.PushProviderException;
 import org.wso2.carbon.identity.notification.push.provider.model.PushDeviceData;
+import org.wso2.carbon.identity.notification.push.provider.model.PushSenderData;
 import org.wso2.carbon.identity.notification.sender.tenant.config.dto.PushSenderDTO;
 import org.wso2.carbon.identity.notification.sender.tenant.config.exception.NotificationSenderManagementException;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
@@ -63,7 +61,6 @@ import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -80,21 +77,29 @@ import static org.wso2.carbon.identity.notification.push.device.handler.constant
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_SIGNATURE_VERIFICATION_FAILED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.HASHING_ALGORITHM;
-import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushEndpointPaths.PUSH_AUTH_PATH;
-import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushEndpointPaths.PUSH_DEVICE_MGT_BASE_PATH;
-import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushEndpointPaths.PUSH_DEVICE_REMOVE_PATH;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.SIGNATURE_ALGORITHM;
 
 /**
  * Device handler service implementation.
  */
-@SuppressFBWarnings
 public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
     private static final Log LOG = LogFactory.getLog(DeviceHandlerServiceImpl.class);
-    private static DeviceDAO deviceDAO = new DeviceDAOImpl();
-    private static DeviceRegistrationContextManager deviceRegistrationContextManager
-            = new DeviceRegistrationContextManagerImpl();
+    private DeviceDAO deviceDAO;
+    private DeviceRegistrationContextManager deviceRegistrationContextManager;
+    private static final String DEFAULT_PUSH_SENDER_NAME = "PushPublisher";
+
+    /**
+     * Constructor of DeviceHandlerServiceImpl.
+     *
+     * @param deviceRegistrationContextManager Device registration context manager.
+     */
+    public DeviceHandlerServiceImpl(DeviceRegistrationContextManager deviceRegistrationContextManager,
+                                    DeviceDAO deviceDAO) {
+
+        this.deviceRegistrationContextManager = deviceRegistrationContextManager;
+        this.deviceDAO = deviceDAO;
+    }
 
     @Override
     public Device registerDevice(RegistrationRequest registrationRequest, String tenantDomain)
@@ -103,7 +108,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         String deviceId = registrationRequest.getDeviceId();
         DeviceRegistrationContext context = deviceRegistrationContextManager.getContext(deviceId, tenantDomain);
         if (context == null) {
-            throw handleDeviceHandlerClientException(ERROR_CODE_REGISTRATION_CONTEXT_NOT_FOUND, deviceId, null);
+            throw new PushDeviceHandlerClientException(ERROR_CODE_REGISTRATION_CONTEXT_NOT_FOUND.getCode(),
+                    String.format(ERROR_CODE_REGISTRATION_CONTEXT_NOT_FOUND.getMessage(), deviceId));
         }
 
         Device device;
@@ -113,11 +119,13 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             if (context.isRegistered()) {
                 deviceRegistrationContextManager.clearContext(registrationRequest.getDeviceId(), tenantDomain);
             } else {
-                throw handleDeviceHandlerClientException(ERROR_CODE_DEVICE_REGISTRATION_FAILED, deviceId, null);
+                throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_REGISTRATION_FAILED.getCode(),
+                        String.format(ERROR_CODE_DEVICE_REGISTRATION_FAILED.getMessage(), deviceId));
             }
         } else {
             deviceRegistrationContextManager.clearContext(registrationRequest.getDeviceId(), tenantDomain);
-            throw handleDeviceHandlerClientException(ERROR_CODE_REGISTRATION_CONTEXT_ALREADY_USED, deviceId, null);
+            throw new PushDeviceHandlerClientException(ERROR_CODE_REGISTRATION_CONTEXT_ALREADY_USED.getCode(),
+                    String.format(ERROR_CODE_REGISTRATION_CONTEXT_ALREADY_USED.getMessage(), deviceId));
         }
 
         return device;
@@ -131,7 +139,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             handleDeleteDeviceForProvider(device.get());
             deviceDAO.unregisterDevice(deviceId);
         } else {
-            throw handleDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND, deviceId, null);
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND.getCode(),
+                    String.format(ERROR_CODE_DEVICE_NOT_FOUND.getMessage(), deviceId));
         }
     }
 
@@ -139,16 +148,18 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
     public void unregisterDeviceMobile(String deviceId, String token) throws PushDeviceHandlerException {
 
         Device device;
-        Optional<Device> deviceOption = deviceDAO.getDevice(deviceId);
-        if (deviceOption.isPresent()) {
-            device = deviceOption.get();
+        Optional<Device> devices = deviceDAO.getDevice(deviceId);
+        if (devices.isPresent()) {
+            device = devices.get();
         } else {
-            throw handleDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND, deviceId, null);
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND.getCode(),
+                    String.format(ERROR_CODE_DEVICE_NOT_FOUND.getMessage(), deviceId));
         }
         try {
             PushChallengeValidator.getValidatedClaimSet(token, device.getPublicKey());
         } catch (PushTokenValidationException e) {
-            throw handleDeviceHandlerClientException(ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED, deviceId, e);
+            throw new PushDeviceHandlerClientException(ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED.getCode(),
+                    String.format(ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED.getMessage(), deviceId), e);
         }
         handleDeleteDeviceForProvider(device);
         deviceDAO.unregisterDevice(deviceId);
@@ -164,7 +175,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             String deviceId = device.get().getDeviceId();
             deviceDAO.unregisterDevice(deviceId);
         } else {
-            throw handleDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID, userId, null);
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getCode(),
+                    String.format(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getMessage(), userId));
         }
     }
 
@@ -188,7 +200,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         if (device.isPresent()) {
             return device.get();
         } else {
-            throw handleDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID, userId, null);
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getCode(),
+                    String.format(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getMessage(), userId));
         }
     }
 
@@ -215,7 +228,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         String challenge = UUID.randomUUID().toString();
         registrationDiscoveryData.setChallenge(challenge);
 
-        //Set organization ID and organization name if the user is associated with an organization.
+        // Set organization ID and organization name if the user is associated with an organization.
         try {
             resolveTenantAndOrganizationInfo(registrationDiscoveryData, tenantDomain);
         } catch (OrganizationManagementException e) {
@@ -223,12 +236,13 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
                     "information.", e);
         }
 
-        // Setup push notification feature related endpoints.
-        setupEndpoints(registrationDiscoveryData);
+        // Set up the host.
+        String host = IdentityUtil.getServerURL(null, false, false);
+        registrationDiscoveryData.setHost(host);
 
         // Store to cache.
         DeviceRegistrationContext deviceRegistrationContext = new DeviceRegistrationContext(
-                challenge, username, tenantDomain, false, false);
+                challenge, username, tenantDomain, false);
         deviceRegistrationContextManager.storeRegistrationContext(deviceId, deviceRegistrationContext, tenantDomain);
 
         return registrationDiscoveryData;
@@ -241,7 +255,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         if (publicKey.isPresent()) {
             return publicKey.get();
         } else {
-            throw handleDeviceHandlerClientException(ERROR_CODE_PUBLIC_KEY_NOT_FOUND, deviceId, null);
+            throw new PushDeviceHandlerClientException(ERROR_CODE_PUBLIC_KEY_NOT_FOUND.getCode(),
+                    String.format(ERROR_CODE_PUBLIC_KEY_NOT_FOUND.getMessage(), deviceId));
         }
     }
 
@@ -249,16 +264,16 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * Resolve the tenant and organization information.
      *
      * @param registrationDiscoveryData Registration discovery data.
-     * @param tenantDomain              Tenant domain.
+     * @param domainIdentifier          Tenant domain or Org Id of the user.
      * @throws OrganizationManagementException Organization Management Exception.
      */
     private void resolveTenantAndOrganizationInfo(RegistrationDiscoveryData registrationDiscoveryData,
-                                                  String tenantDomain) throws OrganizationManagementException {
+                                                  String domainIdentifier) throws OrganizationManagementException {
 
-        if (OrganizationManagementUtil.isOrganization(tenantDomain)) {
+        if (OrganizationManagementUtil.isOrganization(domainIdentifier)) {
             OrganizationManager organizationManager = PushDeviceHandlerDataHolder.getInstance()
                     .getOrganizationManager();
-            String orgId = organizationManager.resolveOrganizationId(tenantDomain);
+            String orgId = organizationManager.resolveOrganizationId(domainIdentifier);
             String organizationName = organizationManager.getOrganizationNameById(orgId);
             String primaryOrgId = organizationManager.getPrimaryOrganizationId(orgId);
             String primaryTenantDomain = organizationManager.resolveTenantDomain(primaryOrgId);
@@ -267,41 +282,35 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             registrationDiscoveryData.setOrganizationId(orgId);
             registrationDiscoveryData.setOrganizationName(organizationName);
         } else {
-            registrationDiscoveryData.setTenantDomain(tenantDomain);
+            registrationDiscoveryData.setTenantDomain(domainIdentifier);
         }
-    }
-
-    /**
-     * Handle the device handler client exception.
-     *
-     * @param error       Error message.
-     * @param stringValue String value.
-     * @param cause       Throwable cause.
-     * @return PushDeviceHandlerClientException.
-     */
-    private PushDeviceHandlerClientException handleDeviceHandlerClientException(
-            PushDeviceHandlerConstants.ErrorMessages error, String stringValue, Throwable cause) {
-
-        if (cause == null) {
-            return new PushDeviceHandlerClientException(error.getCode(),
-                    String.format(error.getMessage(), stringValue));
-        }
-        return new PushDeviceHandlerClientException(error.getCode(),
-                String.format(error.getMessage(), stringValue), cause);
     }
 
     /**
      * Handle the signature verification and exceptions.
      *
      * @param registrationRequest Registration request.
-     * @param context            Device registration context.
+     * @param context             Device registration context.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
     private void handleSignatureVerification(RegistrationRequest registrationRequest, DeviceRegistrationContext context)
             throws PushDeviceHandlerServerException, PushDeviceHandlerClientException {
 
         try {
-            boolean isSignatureVerified = verifySignature(registrationRequest, context);
+            String signature = registrationRequest.getSignature();
+            String deviceToken = registrationRequest.getDeviceToken();
+            String publicKey = registrationRequest.getPublicKey();
+
+            byte[] signatureBytes = Base64.getDecoder().decode(signature);
+            Signature sign = Signature.getInstance(HASHING_ALGORITHM);
+            byte[] publicKeyData = Base64.getDecoder().decode(publicKey);
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(publicKeyData);
+            KeyFactory kf = KeyFactory.getInstance(SIGNATURE_ALGORITHM);
+            PublicKey pubKey = kf.generatePublic(spec);
+            sign.initVerify(pubKey);
+            sign.update((context.getChallenge() + "." + deviceToken).getBytes(StandardCharsets.UTF_8));
+            boolean isSignatureVerified = sign.verify(signatureBytes);
+
             if (!isSignatureVerified) {
                 String errorMessage = String.format(ERROR_CODE_INVALID_SIGNATURE.toString(),
                         registrationRequest.getDeviceId());
@@ -315,39 +324,10 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
     }
 
     /**
-     * Verify the signature using the public key for the registered device.
-     *
-     * @param registrationRequest Registration request.
-     * @param context            Device registration context.
-     * @return boolean verification.
-     * @throws NoSuchAlgorithmException NoSuchAlgorithmException.
-     * @throws InvalidKeySpecException InvalidKeySpecException.
-     * @throws InvalidKeyException InvalidKeyException.
-     * @throws SignatureException SignatureException.
-     */
-    private boolean verifySignature(RegistrationRequest registrationRequest, DeviceRegistrationContext context)
-            throws NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, SignatureException {
-
-        String signature = registrationRequest.getSignature();
-        String deviceToken = registrationRequest.getDeviceToken();
-        String publicKey = registrationRequest.getPublicKey();
-
-        byte[] signatureBytes = Base64.getDecoder().decode(signature);
-        Signature sign = Signature.getInstance(HASHING_ALGORITHM);
-        byte[] publicKeyData = Base64.getDecoder().decode(publicKey);
-        X509EncodedKeySpec spec = new X509EncodedKeySpec(publicKeyData);
-        KeyFactory kf = KeyFactory.getInstance(SIGNATURE_ALGORITHM);
-        PublicKey pubKey = kf.generatePublic(spec);
-        sign.initVerify(pubKey);
-        sign.update((context.getChallenge() + "." + deviceToken).getBytes(StandardCharsets.UTF_8));
-        return sign.verify(signatureBytes);
-    }
-
-    /**
      * Handle the device registration and exceptions.
      *
      * @param registrationRequest Registration request.
-     * @param context            Device registration context.
+     * @param context             Device registration context.
      * @return Device.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
@@ -371,32 +351,14 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             throw new PushDeviceHandlerServerException(errorMessage, e);
         }
 
-        /*
-        * Currently, we are only allowing the user to register one device instance at a time. There won't be a scenario
-        * where the user can register multiple devices.
-        * When the push notification provider configuration is changed by the admin, an existing user with a registered
-        * device won't be able to receive push notifications because the device token generated is bound to the
-        * notification provider. So, the user has to re-register the device to receive push notifications. Hence, the
-        * existing device will be removed and the new device will be registered.
-        * We analyse the error response from the push notification provider and notify the user to re-register the
-        * device if it is a scenario of device token expiry or token is not relevant to the provider.
-        * */
         try {
             Device existingDevice = getDeviceByUserId(userId, tenantDomain);
-            // If the device is already registered, we will check whether the force registration is enabled.
-            if (!context.isForceRegistration()) {
+            if (existingDevice != null) {
                 String errorMessage = String.format(ERROR_CODE_DEVICE_ALREADY_REGISTERED.toString(),
                         registrationRequest.getDeviceId());
-                throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_ALREADY_REGISTERED.getCode(),
-                        errorMessage);
+                throw new PushDeviceHandlerClientException(
+                        ERROR_CODE_DEVICE_ALREADY_REGISTERED.getCode(), errorMessage);
             }
-            // If the force registration is enabled, we will remove the existing device and register the new device.
-            if (LOG.isDebugEnabled()) {
-                String message = String.format("Device already registered for the user: %s. Hence, removing the" +
-                        "existing device", userId);
-                LOG.debug(message);
-            }
-            unregisterDevice(existingDevice.getDeviceId());
         } catch (PushDeviceHandlerClientException e) {
             // This means there is no existing device registered for the user.
             if ((ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getCode()).equals(e.getErrorCode())) {
@@ -418,7 +380,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         Device device = new Device(
                 userId, registrationRequest.getDeviceId(), registrationRequest.getDeviceName(),
                 registrationRequest.getDeviceModel(), registrationRequest.getDeviceToken(), null,
-                null, null, registrationRequest.getPublicKey()
+                null, registrationRequest.getPublicKey()
         );
 
         // Register the device with the push notification providers.
@@ -446,15 +408,12 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
         try {
             PushDeviceData pushDeviceData = buildPushDeviceDataFromDevice(device);
-            List<PushSenderDTO> pushSenders = PushDeviceHandlerDataHolder.getInstance()
-                    .getNotificationSenderManagementService().getPushSenders(true);
-            for (PushSenderDTO pushSender : pushSenders) {
-                String pushProviderName = pushSender.getProvider();
-                PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance().getPushProvider(pushProviderName);
-                pushProvider.registerDevice(pushDeviceData, pushSender);
-                device.setProvider(pushProviderName);
-                device.setProviderId(pushSender.getProviderId());
-            }
+            PushSenderDTO pushSender = PushDeviceHandlerDataHolder.getInstance()
+                    .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_SENDER_NAME, true);
+            String pushProviderName = pushSender.getProvider();
+            PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance().getPushProvider(pushProviderName);
+            pushProvider.registerDevice(pushDeviceData, buildPushSenderData(pushSender));
+            device.setProvider(pushProviderName);
         } catch (NotificationSenderManagementException e) {
             throw new PushDeviceHandlerServerException(
                     "Error occurred while retrieving the push notification senders.", e);
@@ -474,14 +433,12 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         String deviceProviderType = device.getProvider();
         PushDeviceData pushDeviceData = buildPushDeviceDataFromDevice(device);
         try {
-            List<PushSenderDTO> pushSenders = PushDeviceHandlerDataHolder.getInstance()
-                    .getNotificationSenderManagementService().getPushSenders(true);
-            for (PushSenderDTO pushSender : pushSenders) {
-                if (deviceProviderType.equals(pushSender.getProvider())) {
-                    PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance()
-                            .getPushProvider(deviceProviderType);
-                    pushProvider.unregisterDevice(pushDeviceData, pushSender);
-                }
+            PushSenderDTO pushSender = PushDeviceHandlerDataHolder.getInstance()
+                    .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_SENDER_NAME, true);
+            if (deviceProviderType.equals(pushSender.getProvider())) {
+                PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance()
+                        .getPushProvider(deviceProviderType);
+                pushProvider.unregisterDevice(pushDeviceData, buildPushSenderData(pushSender));
             }
         } catch (NotificationSenderManagementException e) {
             throw new PushDeviceHandlerServerException(
@@ -528,14 +485,12 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         String deviceProviderType = device.getProvider();
         PushDeviceData pushDeviceData = buildPushDeviceDataFromDevice(device);
         try {
-            List<PushSenderDTO> pushSenders = PushDeviceHandlerDataHolder.getInstance()
-                    .getNotificationSenderManagementService().getPushSenders(true);
-            for (PushSenderDTO pushSender : pushSenders) {
-                if (deviceProviderType.equals(pushSender.getProvider())) {
-                    PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance()
-                            .getPushProvider(deviceProviderType);
-                    pushProvider.updateDevice(pushDeviceData, pushSender);
-                }
+            PushSenderDTO pushSender = PushDeviceHandlerDataHolder.getInstance()
+                    .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_SENDER_NAME, true);
+            if (deviceProviderType.equals(pushSender.getProvider())) {
+                PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance()
+                        .getPushProvider(deviceProviderType);
+                pushProvider.updateDevice(pushDeviceData, buildPushSenderData(pushSender));
             }
         } catch (NotificationSenderManagementException e) {
             throw new PushDeviceHandlerServerException(
@@ -557,31 +512,18 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
     }
 
     /**
-     * Set up the push notification feature related endpoints.
+     * Build the push sender data from the push sender DTO.
      *
-     * @param registrationDiscoveryData Registration discovery data.
+     * @param pushSenderDTO Push sender DTO.
+     * @return Push sender data.
      */
-    private void setupEndpoints(RegistrationDiscoveryData registrationDiscoveryData) {
+    public static PushSenderData buildPushSenderData(PushSenderDTO pushSenderDTO) {
 
-        String tenantDomain = registrationDiscoveryData.getTenantDomain();
-        String organizationId = registrationDiscoveryData.getOrganizationId();
-        String deviceId = registrationDiscoveryData.getDeviceId();
-
-
-        String host = IdentityUtil.getServerURL(null, false, false);
-        registrationDiscoveryData.setHost(host);
-
-        String tenantPath = "/t/" + tenantDomain;
-        registrationDiscoveryData.setTenantPath(tenantPath);
-
-        if (StringUtils.isNotBlank(organizationId)) {
-            String organizationPath = "/o/" + organizationId;
-            registrationDiscoveryData.setOrganizationPath(organizationPath);
-        }
-
-        registrationDiscoveryData.setRegistrationEndpoint(PUSH_DEVICE_MGT_BASE_PATH);
-        registrationDiscoveryData.setAuthenticationEndpoint(PUSH_AUTH_PATH);
-        String removeDeviceEndpointPath = PUSH_DEVICE_MGT_BASE_PATH + "/" + deviceId + PUSH_DEVICE_REMOVE_PATH;
-        registrationDiscoveryData.setRemoveDeviceEndpoint(removeDeviceEndpointPath);
+        PushSenderData pushSenderData = new PushSenderData();
+        pushSenderData.setName(pushSenderDTO.getName());
+        pushSenderData.setProvider(pushSenderDTO.getProvider());
+        pushSenderData.setProperties(pushSenderDTO.getProperties());
+        pushSenderData.setProviderId(pushSenderDTO.getProviderId());
+        return pushSenderData;
     }
 }

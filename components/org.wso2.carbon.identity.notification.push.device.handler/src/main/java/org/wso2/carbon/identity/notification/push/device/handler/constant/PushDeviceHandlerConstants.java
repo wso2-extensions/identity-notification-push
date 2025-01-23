@@ -27,23 +27,26 @@ public class PushDeviceHandlerConstants {
     public static final String SIGNATURE_ALGORITHM = "RSA";
 
     /**
+     * Private constructor to prevent initialization of the class.
+     */
+    private PushDeviceHandlerConstants() {
+
+    }
+
+    /**
      * Class containing SQL query constants.
      */
     public static class SQLQueries {
 
-        public SQLQueries() {
-
-        }
-
         public static final String REGISTER_DEVICE = "INSERT INTO IDN_PUSH_DEVICE_STORE (ID, USER_ID, " +
-                "DEVICE_NAME, DEVICE_MODEL, DEVICE_TOKEN, DEVICE_HANDLE, PROVIDER, PROVIDER_ID, PUBLIC_KEY, " +
+                "DEVICE_NAME, DEVICE_MODEL, DEVICE_TOKEN, DEVICE_HANDLE, PROVIDER, PUBLIC_KEY, " +
                 "TENANT_ID) VALUES (:ID;, :USER_ID;, :DEVICE_NAME;, :DEVICE_MODEL;, :DEVICE_TOKEN;, :DEVICE_HANDLE;, " +
-                ":PROVIDER;, :PROVIDER_ID;, :PUBLIC_KEY;, :TENANT_ID;)";
+                ":PROVIDER;, :PUBLIC_KEY;, :TENANT_ID;)";
         public static final String GET_DEVICE_BY_DEVICE_ID = "SELECT ID, USER_ID, DEVICE_NAME, DEVICE_MODEL, " +
-                "DEVICE_TOKEN, DEVICE_HANDLE, PROVIDER, PROVIDER_ID, PUBLIC_KEY, TENANT_ID FROM " +
+                "DEVICE_TOKEN, DEVICE_HANDLE, PROVIDER, PUBLIC_KEY, TENANT_ID FROM " +
                 "IDN_PUSH_DEVICE_STORE WHERE ID = :ID;";
         public static final String GET_DEVICE_BY_USER_ID = "SELECT ID, USER_ID, DEVICE_NAME, DEVICE_MODEL, " +
-                "DEVICE_TOKEN, DEVICE_HANDLE, PROVIDER, PROVIDER_ID, PUBLIC_KEY, TENANT_ID FROM " +
+                "DEVICE_TOKEN, DEVICE_HANDLE, PROVIDER, PUBLIC_KEY, TENANT_ID FROM " +
                 "IDN_PUSH_DEVICE_STORE WHERE USER_ID = :USER_ID;";
         public static final String GET_PUBLIC_KEY_BY_ID = "SELECT PUBLIC_KEY FROM IDN_PUSH_DEVICE_STORE " +
                 "WHERE ID = :ID;";
@@ -65,18 +68,7 @@ public class PushDeviceHandlerConstants {
         public static final String DEVICE_HANDLE = "DEVICE_HANDLE";
         public static final String PUBLIC_KEY = "PUBLIC_KEY";
         public static final String PROVIDER = "PROVIDER";
-        public static final String PROVIDER_ID = "PROVIDER_ID";
         public static final String TENANT_ID = "TENANT_ID";
-    }
-
-    /**
-     * Class containing Push Endpoint paths.
-     */
-    public static class PushEndpointPaths {
-
-        public static final String PUSH_DEVICE_MGT_BASE_PATH = "/api/users/v1/me/push/devices";
-        public static final String PUSH_DEVICE_REMOVE_PATH = "/remove";
-        public static final String PUSH_AUTH_PATH = "/push-auth/authenticate";
     }
 
     /**

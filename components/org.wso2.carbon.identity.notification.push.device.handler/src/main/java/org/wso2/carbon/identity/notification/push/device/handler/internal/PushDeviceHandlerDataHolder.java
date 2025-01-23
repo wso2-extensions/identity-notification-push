@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.notification.push.device.handler.internal;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.wso2.carbon.identity.notification.push.provider.PushProvider;
 import org.wso2.carbon.identity.notification.sender.tenant.config.NotificationSenderManagementService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
@@ -30,15 +29,13 @@ import java.util.Map;
 /**
  * Push device handler data holder.
  */
-@SuppressFBWarnings
 public class PushDeviceHandlerDataHolder {
 
+    private static PushDeviceHandlerDataHolder instance = new PushDeviceHandlerDataHolder();
+    private final Map<String, PushProvider> pushNotificationProviders = new HashMap<>();
     private RealmService realmService;
     private OrganizationManager organizationManager;
     private NotificationSenderManagementService notificationSenderManagementService;
-    private final Map<String, PushProvider> pushNotificationProviders = new HashMap<>();
-
-    private static PushDeviceHandlerDataHolder instance = new PushDeviceHandlerDataHolder();
 
     public static PushDeviceHandlerDataHolder getInstance() {
 

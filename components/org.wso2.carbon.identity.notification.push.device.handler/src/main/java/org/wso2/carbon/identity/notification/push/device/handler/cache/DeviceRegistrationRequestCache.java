@@ -18,14 +18,12 @@
 
 package org.wso2.carbon.identity.notification.push.device.handler.cache;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.wso2.carbon.identity.core.cache.BaseCache;
 import org.wso2.carbon.utils.CarbonUtils;
 
 /**
  * Device registration request cache.
  */
-@SuppressFBWarnings
 public class DeviceRegistrationRequestCache extends BaseCache<DeviceRegistrationRequestCacheKey,
         DeviceRegistrationRequestCacheEntry> {
 

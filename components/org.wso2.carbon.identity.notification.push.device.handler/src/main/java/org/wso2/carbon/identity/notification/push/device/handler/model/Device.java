@@ -33,15 +33,14 @@ public class Device implements Serializable {
     private String deviceToken;
     private String deviceHandle;
     private String provider;
-    private String providerId;
     private String publicKey;
 
     public Device() {
-        // To prevent instantiation of an empty object.
+
     }
 
     public Device(String userId, String deviceId, String deviceName, String deviceModel, String deviceToken,
-                  String deviceHandle, String provider, String providerId, String publicKey) {
+                  String deviceHandle, String provider, String publicKey) {
 
         this.userId = userId;
         this.deviceId = deviceId;
@@ -50,7 +49,6 @@ public class Device implements Serializable {
         this.deviceToken = deviceToken;
         this.deviceHandle = deviceHandle;
         this.provider = provider;
-        this.providerId = providerId;
         this.publicKey = publicKey;
     }
 
@@ -132,15 +130,5 @@ public class Device implements Serializable {
     public void setDeviceHandle(String deviceHandle) {
 
         this.deviceHandle = deviceHandle;
-    }
-
-    public String getProviderId() {
-
-        return providerId;
-    }
-
-    public void setProviderId(String providerId) {
-
-        this.providerId = providerId;
     }
 }

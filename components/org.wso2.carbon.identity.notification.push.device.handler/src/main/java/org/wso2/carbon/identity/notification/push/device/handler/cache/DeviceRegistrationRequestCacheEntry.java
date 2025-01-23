@@ -18,14 +18,12 @@
 
 package org.wso2.carbon.identity.notification.push.device.handler.cache;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.wso2.carbon.identity.core.cache.CacheEntry;
 import org.wso2.carbon.identity.notification.push.device.handler.model.DeviceRegistrationContext;
 
 /**
  * Cache entry for Device Registration Request.
  */
-@SuppressFBWarnings
 public class DeviceRegistrationRequestCacheEntry extends CacheEntry {
 
     private static final long serialVersionUID = -4976259795783529978L;
@@ -37,6 +35,7 @@ public class DeviceRegistrationRequestCacheEntry extends CacheEntry {
      * @param deviceRegistrationContext DeviceRegistrationContext
      */
     public DeviceRegistrationRequestCacheEntry(DeviceRegistrationContext deviceRegistrationContext) {
+
         this.deviceRegistrationContext = deviceRegistrationContext;
     }
 
@@ -46,6 +45,7 @@ public class DeviceRegistrationRequestCacheEntry extends CacheEntry {
      * @return DeviceRegistrationContext
      */
     public DeviceRegistrationContext getDeviceRegistrationContext() {
+
         return deviceRegistrationContext;
     }
 }

@@ -42,9 +42,8 @@ import java.util.Date;
  */
 public class PushChallengeValidator {
 
-    private static final String DOT_SEPARATOR = ".";
     public static final String SIGNING_ALGORITHM = "RSA";
-    private static final long DEFAULT_TIME_SKEW_IN_SECONDS = 300L;
+    private static final String DOT_SEPARATOR = ".";
     private static final Log log = LogFactory.getLog(PushChallengeValidator.class);
 
     /**
@@ -75,9 +74,6 @@ public class PushChallengeValidator {
             if (!checkExpirationTime(claimsSet.getExpirationTime())) {
                 throw new PushTokenValidationException("Token validation failed. JWT is expired.");
             }
-            if (!checkNotBeforeTime(claimsSet.getNotBeforeTime())) {
-                throw new PushTokenValidationException("Token validation failed. JWT is not active.");
-            }
 
             return claimsSet;
         } catch (ParseException e) {
@@ -103,7 +99,9 @@ public class PushChallengeValidator {
             SignedJWT.parse(jwt);
             return true;
         } catch (ParseException e) {
-            log.error("Error occurred while parsing the JWT token.", e);
+            if (log.isDebugEnabled()) {
+                log.debug("Error occurred while parsing the JWT token.", e);
+            }
             return false;
         }
     }
@@ -116,7 +114,7 @@ public class PushChallengeValidator {
      * @return Boolean value for signature validation
      * @throws PushTokenValidationException Error when validating the signature
      */
-    protected static boolean validateSignature(String publicKeyStr, SignedJWT signedJWT)
+    private static boolean validateSignature(String publicKeyStr, SignedJWT signedJWT)
             throws PushTokenValidationException {
 
         try {
@@ -140,29 +138,9 @@ public class PushChallengeValidator {
      */
     private static boolean checkExpirationTime(Date expirationTime) {
 
-        long timeStampSkewMillis = DEFAULT_TIME_SKEW_IN_SECONDS * 1000;
         long expirationTimeInMillis = expirationTime.getTime();
         long currentTimeInMillis = System.currentTimeMillis();
-        return (currentTimeInMillis + timeStampSkewMillis) <= expirationTimeInMillis;
-    }
-
-    /**
-     * Validate if the JWT is active.
-     *
-     * @param notBeforeTime Time set to activate the JWT
-     * @return Boolean validating if the JWT is active
-     */
-    private static boolean checkNotBeforeTime(Date notBeforeTime) {
-
-        if (notBeforeTime != null) {
-            long timeStampSkewMillis = DEFAULT_TIME_SKEW_IN_SECONDS * 1000;
-            long notBeforeTimeMillis = notBeforeTime.getTime();
-            long currentTimeInMillis = System.currentTimeMillis();
-            return currentTimeInMillis + timeStampSkewMillis >= notBeforeTimeMillis;
-
-        } else {
-            return false;
-        }
+        return (currentTimeInMillis) <= expirationTimeInMillis;
     }
 
     /**
@@ -174,7 +152,7 @@ public class PushChallengeValidator {
      * @return Boolean value for challenge validation
      */
     public static boolean validateChallenge(JWTClaimsSet claimsSet, String challengeType,
-                                     String challenge, String deviceId) {
+                                            String challenge, String deviceId) {
 
         if (claimsSet == null) {
             if (log.isDebugEnabled()) {

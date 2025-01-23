@@ -30,16 +30,13 @@ public class DeviceRegistrationContext implements Serializable {
     private String username;
     private String tenantDomain;
     private boolean registered;
-    private boolean isForceRegistration;
 
-    public DeviceRegistrationContext(String challenge, String username, String tenantDomain, boolean registered,
-                                     boolean isForceRegistration) {
+    public DeviceRegistrationContext(String challenge, String username, String tenantDomain, boolean registered) {
 
         this.challenge = challenge;
         this.username = username;
         this.tenantDomain = tenantDomain;
         this.registered = registered;
-        this.isForceRegistration = isForceRegistration;
     }
 
     public String getChallenge() {
@@ -80,15 +77,5 @@ public class DeviceRegistrationContext implements Serializable {
     public void setRegistered(boolean registered) {
 
         this.registered = registered;
-    }
-
-    public boolean isForceRegistration() {
-
-        return isForceRegistration;
-    }
-
-    public void setForceRegistration(boolean forceRegistration) {
-
-        isForceRegistration = forceRegistration;
     }
 }

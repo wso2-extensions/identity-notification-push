@@ -54,14 +54,11 @@ import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
-import java.lang.reflect.Field;
 import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -73,6 +70,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.HASHING_ALGORITHM;
 
+/**
+ * Test class for DeviceHandlerServiceImpl.
+ */
 public class DeviceHandlerServiceImplTest {
 
     private String publicKey;
@@ -96,16 +96,10 @@ public class DeviceHandlerServiceImplTest {
     DeviceHandlerServiceImpl deviceHandlerService;
 
     @BeforeTest
-    void setUp() throws IllegalAccessException, NoSuchFieldException {
+    void setUp() {
 
         MockitoAnnotations.openMocks(this);
-        Field contextManagerField = DeviceHandlerServiceImpl.class.getDeclaredField("deviceRegistrationContextManager");
-        contextManagerField.setAccessible(true);
-        contextManagerField.set(null, deviceRegistrationContextManager);
-
-        Field deviceDAOField = DeviceHandlerServiceImpl.class.getDeclaredField("deviceDAO");
-        deviceDAOField.setAccessible(true);
-        deviceDAOField.set(null, deviceDAO);
+        deviceHandlerService = new DeviceHandlerServiceImpl(deviceRegistrationContextManager, deviceDAO);
 
         publicKey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwdysF2GMCgENwNmGvdk0c31JlkLHqs3X4cjN2On1/e4GY2ZU+" +
                 "Q/ZGkmWPhYxx9e18rHrpR7MYM92Nji8cv9q0MgwIHj0CpfMq73GJh/HKZD2638xpdOAMpgoiFnhGGk/hqtrtfS7GZuIKOsdw" +
@@ -169,9 +163,8 @@ public class DeviceHandlerServiceImplTest {
             pushSenderDTO.setName("PushPublisher");
             pushSenderDTO.setProvider("FCM");
             pushSenderDTO.setProviderId("fcm-provider-id");
-            List<PushSenderDTO> pushSenders = new ArrayList<>();
-            pushSenders.add(pushSenderDTO);
-            when(notificationSenderManagementService.getPushSenders(anyBoolean())).thenReturn(pushSenders);
+            when(notificationSenderManagementService.getPushSender(anyString(), anyBoolean()))
+                    .thenReturn(pushSenderDTO);
 
             FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
             when(pushDeviceHandlerDataHolder.getPushProvider(anyString())).thenReturn(fcmPushProvider);
@@ -299,73 +292,6 @@ public class DeviceHandlerServiceImplTest {
     }
 
     @Test
-    public void testRegisterDeviceWithForceRegistration()
-            throws PushDeviceHandlerException, UserStoreException, NotificationSenderManagementException,
-            PushProviderException {
-
-        RegistrationRequest registrationRequest = createRegistrationRequest();
-
-        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
-        deviceRegistrationContext.setForceRegistration(true);
-
-        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
-                .thenReturn(deviceRegistrationContext);
-
-        try (
-                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
-                        Mockito.mockStatic(IdentityTenantUtil.class);
-                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
-                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
-        ) {
-
-            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
-            UserRealm userRealm = mock(UserRealm.class);
-            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getRealm(anyString(), anyString()))
-                    .thenReturn(userRealm);
-            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
-            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
-            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
-
-            Device deviceObj = new Device();
-            deviceObj.setDeviceId("1234567890");
-            deviceObj.setProvider("FCM");
-            deviceObj.setDeviceToken(deviceToken);
-            Optional<Device> device = Optional.of(deviceObj);
-            when(deviceDAO.getDevice(anyString())).thenReturn(device);
-            when(deviceDAO.getDeviceByUserId(anyString(), anyInt())).thenReturn(device);
-
-            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
-            mockedPushDeviceHandlerDataHolder.when(PushDeviceHandlerDataHolder::getInstance)
-                    .thenReturn(pushDeviceHandlerDataHolder);
-
-            NotificationSenderManagementService notificationSenderManagementService =
-                    mock(NotificationSenderManagementService.class);
-            when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
-                    .thenReturn(notificationSenderManagementService);
-            PushSenderDTO pushSenderDTO = new PushSenderDTO();
-            pushSenderDTO.setName("PushPublisher");
-            pushSenderDTO.setProvider("FCM");
-            pushSenderDTO.setProviderId("fcm-provider-id");
-            List<PushSenderDTO> pushSenders = new ArrayList<>();
-            pushSenders.add(pushSenderDTO);
-            when(notificationSenderManagementService.getPushSenders(anyBoolean())).thenReturn(pushSenders);
-
-            FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
-            when(pushDeviceHandlerDataHolder.getPushProvider(anyString())).thenReturn(fcmPushProvider);
-            doNothing().when(fcmPushProvider).registerDevice(any(), any());
-            doNothing().when(fcmPushProvider).unregisterDevice(any(), any());
-
-            doNothing().when(deviceDAO).registerDevice(any(), anyInt());
-            doNothing().when(deviceDAO).unregisterDevice(anyString());
-
-            Device registeredDevice = deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
-
-            Assert.assertNotNull(registeredDevice);
-            Assert.assertTrue(deviceRegistrationContext.isRegistered());
-        }
-    }
-
-    @Test
     public void testGetDevice() throws PushDeviceHandlerException {
 
         Device deviceObj = new Device();
@@ -449,9 +375,8 @@ public class DeviceHandlerServiceImplTest {
             pushSenderDTO.setName("PushPublisher");
             pushSenderDTO.setProvider("FCM");
             pushSenderDTO.setProviderId("fcm-provider-id");
-            List<PushSenderDTO> pushSenders = new ArrayList<>();
-            pushSenders.add(pushSenderDTO);
-            when(notificationSenderManagementService.getPushSenders(anyBoolean())).thenReturn(pushSenders);
+            when(notificationSenderManagementService.getPushSender(anyString(), anyBoolean()))
+                    .thenReturn(pushSenderDTO);
 
             FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
             when(pushDeviceHandlerDataHolder.getPushProvider(anyString())).thenReturn(fcmPushProvider);
@@ -526,9 +451,8 @@ public class DeviceHandlerServiceImplTest {
             pushSenderDTO.setName("PushPublisher");
             pushSenderDTO.setProvider("FCM");
             pushSenderDTO.setProviderId("fcm-provider-id");
-            List<PushSenderDTO> pushSenders = new ArrayList<>();
-            pushSenders.add(pushSenderDTO);
-            when(notificationSenderManagementService.getPushSenders(anyBoolean())).thenReturn(pushSenders);
+            when(notificationSenderManagementService.getPushSender(anyString(), anyBoolean()))
+                    .thenReturn(pushSenderDTO);
 
             FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
             when(pushDeviceHandlerDataHolder.getPushProvider(anyString())).thenReturn(fcmPushProvider);
@@ -580,9 +504,8 @@ public class DeviceHandlerServiceImplTest {
             pushSenderDTO.setName("PushPublisher");
             pushSenderDTO.setProvider("FCM");
             pushSenderDTO.setProviderId("fcm-provider-id");
-            List<PushSenderDTO> pushSenders = new ArrayList<>();
-            pushSenders.add(pushSenderDTO);
-            when(notificationSenderManagementService.getPushSenders(anyBoolean())).thenReturn(pushSenders);
+            when(notificationSenderManagementService.getPushSender(anyString(), anyBoolean()))
+                    .thenReturn(pushSenderDTO);
 
             FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
             when(pushDeviceHandlerDataHolder.getPushProvider(anyString())).thenReturn(fcmPushProvider);
@@ -702,7 +625,6 @@ public class DeviceHandlerServiceImplTest {
                 "bfd5e5cf-47e2-4214-9994-f9217ef5b344",
                 "testUser",
                 "carbon.super",
-                false,
                 false
         );
     }

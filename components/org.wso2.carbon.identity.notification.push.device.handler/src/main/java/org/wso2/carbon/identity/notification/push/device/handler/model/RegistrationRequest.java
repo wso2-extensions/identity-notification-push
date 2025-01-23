@@ -33,17 +33,6 @@ public class RegistrationRequest implements Serializable {
     private String publicKey;
     private String signature;
 
-    public RegistrationRequest(String deviceId, String deviceName, String deviceModel, String deviceToken,
-                               String publicKey, String signature) {
-
-        this.deviceId = deviceId;
-        this.deviceName = deviceName;
-        this.deviceModel = deviceModel;
-        this.deviceToken = deviceToken;
-        this.publicKey = publicKey;
-        this.signature = signature;
-    }
-
     public RegistrationRequest() {
 
     }

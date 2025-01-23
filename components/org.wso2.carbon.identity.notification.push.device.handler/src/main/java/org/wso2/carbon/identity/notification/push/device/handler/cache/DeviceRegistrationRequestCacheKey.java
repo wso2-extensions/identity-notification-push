@@ -34,6 +34,7 @@ public class DeviceRegistrationRequestCacheKey extends CacheKey {
      * @param deviceId Device ID
      */
     public DeviceRegistrationRequestCacheKey(String deviceId) {
+
         this.deviceId = deviceId;
     }
 
@@ -43,6 +44,7 @@ public class DeviceRegistrationRequestCacheKey extends CacheKey {
      * @return Device ID
      */
     public String getDeviceId() {
+
         return deviceId;
     }
 

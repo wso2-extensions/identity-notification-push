@@ -38,9 +38,6 @@ public class RegistrationDiscoveryData implements Serializable {
     private String organizationName;
     private String organizationPath;
     private String challenge;
-    private String registrationEndpoint;
-    private String authenticationEndpoint;
-    private String removeDeviceEndpoint;
 
     public RegistrationDiscoveryData() {
 
@@ -104,36 +101,6 @@ public class RegistrationDiscoveryData implements Serializable {
     public void setOrganizationId(String organizationId) {
 
         this.organizationId = organizationId;
-    }
-
-    public String getRegistrationEndpoint() {
-
-        return registrationEndpoint;
-    }
-
-    public void setRegistrationEndpoint(String registrationEndpoint) {
-
-        this.registrationEndpoint = registrationEndpoint;
-    }
-
-    public String getAuthenticationEndpoint() {
-
-        return authenticationEndpoint;
-    }
-
-    public void setAuthenticationEndpoint(String authenticationEndpoint) {
-
-        this.authenticationEndpoint = authenticationEndpoint;
-    }
-
-    public String getRemoveDeviceEndpoint() {
-
-        return removeDeviceEndpoint;
-    }
-
-    public void setRemoveDeviceEndpoint(String removeDeviceEndpoint) {
-
-        this.removeDeviceEndpoint = removeDeviceEndpoint;
     }
 
     public String getHost() {
