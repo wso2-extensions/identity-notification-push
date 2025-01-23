@@ -74,7 +74,7 @@ public class FCMPushProvider implements PushProvider {
     public void sendNotification(PushNotificationData pushNotificationData, PushSenderData pushSenderData,
                                  String tenantDomain) throws PushProviderException {
 
-        String appName = FCM_APP_PREFIX + pushSenderData.getProviderId();
+        String appName = generateFirebaseAppName(tenantDomain, pushSenderData.getProviderId());
 
         if (FirebaseApp.getApps().stream().noneMatch(app -> app.getName().equals(appName))) {
 
@@ -173,9 +173,9 @@ public class FCMPushProvider implements PushProvider {
     }
 
     @Override
-    public void updateCredentials(PushSenderData pushSenderData) throws PushProviderException {
+    public void updateCredentials(PushSenderData pushSenderData, String tenantDomain) throws PushProviderException {
 
-        String appName = FCM_APP_PREFIX + pushSenderData.getProviderId();
+        String appName = generateFirebaseAppName(tenantDomain, pushSenderData.getProviderId());
         FirebaseApp.getApps().stream().filter(app -> app.getName().equals(appName)).forEach(FirebaseApp::delete);
     }
 
@@ -279,5 +279,10 @@ public class FCMPushProvider implements PushProvider {
             error = PushProviderConstants.ErrorMessages.ERROR_PUSH_NOTIFICATION_SENDING_FAILED;
         }
         throw new PushProviderException(error.getCode(), error.getMessage(), e);
+    }
+
+    private String generateFirebaseAppName(String tenantDomain, String providerId) {
+
+        return FCM_APP_PREFIX + tenantDomain + "-" + providerId;
     }
 }

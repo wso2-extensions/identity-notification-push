@@ -126,14 +126,14 @@ public class FCMPushProviderTest {
             FirebaseApp mockFirebaseAppToDelete = Mockito.mock(FirebaseApp.class);
             FirebaseApp mockFirebaseAppToKeep = Mockito.mock(FirebaseApp.class);
 
-            when(mockFirebaseAppToDelete.getName()).thenReturn("FirebaseApp-testProvider");
-            when(mockFirebaseAppToKeep.getName()).thenReturn("FirebaseApp-otherProvider");
+            when(mockFirebaseAppToDelete.getName()).thenReturn("FirebaseApp-carbon.super-testProvider");
+            when(mockFirebaseAppToKeep.getName()).thenReturn("FirebaseApp-carbon.super-otherProvider");
 
             mockedFirebaseApp.when(FirebaseApp::getApps).thenReturn(
                     Arrays.asList(mockFirebaseAppToDelete, mockFirebaseAppToKeep));
 
             when(pushSenderData.getProviderId()).thenReturn("testProvider");
-            fcmPushProvider.updateCredentials(pushSenderData);
+            fcmPushProvider.updateCredentials(pushSenderData, "carbon.super");
 
             verify(mockFirebaseAppToDelete, times(1)).delete();
             verify(mockFirebaseAppToKeep, never()).delete();

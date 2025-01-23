@@ -117,6 +117,10 @@
                             org.wso2.carbon.identity.notification.push.provider.*; version="${project.version}",
                         </Export-Package>
                         <!-- Dynamic import has been used to import packages that does not support OSGi -->
+                        <!--
+                            Firebase admin required concurrent.internal.failureaccess class and this clas might not
+                            have support for OSGi. Hence, dynamic import has been used to import all the packages.
+                         -->
                         <DynamicImport-Package>*</DynamicImport-Package>
                     </instructions>
                 </configuration>

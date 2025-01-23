@@ -78,6 +78,7 @@ import static org.wso2.carbon.identity.notification.push.device.handler.constant
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.HASHING_ALGORITHM;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.SIGNATURE_ALGORITHM;
+import static org.wso2.carbon.identity.notification.sender.tenant.config.NotificationSenderManagementConstants.DEFAULT_PUSH_PUBLISHER;
 
 /**
  * Device handler service implementation.
@@ -87,7 +88,6 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
     private static final Log LOG = LogFactory.getLog(DeviceHandlerServiceImpl.class);
     private DeviceDAO deviceDAO;
     private DeviceRegistrationContextManager deviceRegistrationContextManager;
-    private static final String DEFAULT_PUSH_SENDER_NAME = "PushPublisher";
 
     /**
      * Constructor of DeviceHandlerServiceImpl.
@@ -409,7 +409,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         try {
             PushDeviceData pushDeviceData = buildPushDeviceDataFromDevice(device);
             PushSenderDTO pushSender = PushDeviceHandlerDataHolder.getInstance()
-                    .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_SENDER_NAME, true);
+                    .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_PUBLISHER, true);
             String pushProviderName = pushSender.getProvider();
             PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance().getPushProvider(pushProviderName);
             pushProvider.registerDevice(pushDeviceData, buildPushSenderData(pushSender));
@@ -434,7 +434,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         PushDeviceData pushDeviceData = buildPushDeviceDataFromDevice(device);
         try {
             PushSenderDTO pushSender = PushDeviceHandlerDataHolder.getInstance()
-                    .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_SENDER_NAME, true);
+                    .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_PUBLISHER, true);
             if (deviceProviderType.equals(pushSender.getProvider())) {
                 PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance()
                         .getPushProvider(deviceProviderType);
@@ -486,7 +486,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         PushDeviceData pushDeviceData = buildPushDeviceDataFromDevice(device);
         try {
             PushSenderDTO pushSender = PushDeviceHandlerDataHolder.getInstance()
-                    .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_SENDER_NAME, true);
+                    .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_PUBLISHER, true);
             if (deviceProviderType.equals(pushSender.getProvider())) {
                 PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance()
                         .getPushProvider(deviceProviderType);

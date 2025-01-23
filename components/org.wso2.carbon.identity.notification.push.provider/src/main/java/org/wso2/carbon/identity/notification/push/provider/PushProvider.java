@@ -79,7 +79,7 @@ public interface PushProvider {
     void updateDevice(PushDeviceData device, PushSenderData pushSenderData) throws PushProviderException;
 
     /**
-     * Actions to be performed on the properties before storing them in the secret store.
+     * Actions to be performed on the properties of the specific provider.
      *
      * @param pushSenderData Push sender data.
      * @return Processed secret properties.
@@ -88,7 +88,7 @@ public interface PushProvider {
     Map<String, String> preProcessProperties(PushSenderData pushSenderData) throws PushProviderException;
 
     /**
-     * Actions to be performed on the properties after retrieving them from the secret store.
+     * Actions to be performed on the properties of the specific provider.
      *
      * @param pushSenderData Push sender data.
      * @return Processed secret properties.
@@ -102,7 +102,7 @@ public interface PushProvider {
      * @param pushSenderData Push sender data.
      * @throws PushProviderException If an error occurs while updating the credentials.
      */
-    void updateCredentials(PushSenderData pushSenderData) throws PushProviderException;
+    void updateCredentials(PushSenderData pushSenderData, String tenantDomain) throws PushProviderException;
 
     /**
      * Store the secrets in the secret store.
