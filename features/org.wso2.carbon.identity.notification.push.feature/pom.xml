@@ -61,10 +61,6 @@
             <groupId>org.wso2.orbit.com.google.api</groupId>
             <artifactId>api-common</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.wso2.orbit.com.google.guava</groupId>
-            <artifactId>failureaccess</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
@@ -95,7 +91,6 @@
                                 <bundleDef>org.wso2.orbit.org.apache.httpcomponents:httpclient5</bundleDef>
                                 <bundleDef>org.wso2.orbit.org.apache.httpcomponents:httpcore5</bundleDef>
                                 <bundleDef>org.wso2.orbit.com.google.api:api-common</bundleDef>
-                                <bundleDef>org.wso2.orbit.com.google.guava:failureaccess</bundleDef>
                             </bundles>
                         </configuration>
                     </execution>
