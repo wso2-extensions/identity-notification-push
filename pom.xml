@@ -41,7 +41,7 @@
 
     <modules>
         <module>components/org.wso2.carbon.identity.notification.push.common</module>
-<!--        <module>components/org.wso2.carbon.identity.notification.push.device.handler</module>-->
+        <module>components/org.wso2.carbon.identity.notification.push.device.handler</module>
         <module>components/org.wso2.carbon.identity.notification.push.provider</module>
         <module>features/org.wso2.carbon.identity.notification.push.feature</module>
     </modules>
@@ -346,7 +346,7 @@
         <carbon.kernel.package.import.version.range>[4.5.0, 5.0.0)</carbon.kernel.package.import.version.range>
         <org.wso2.carbon.database.utils.version>2.1.6</org.wso2.carbon.database.utils.version>
         <org.wso2.carbon.database.utils.version.range>[2.0.0,3.0.0)</org.wso2.carbon.database.utils.version.range>
-        <identity.notification.sender.tenant.config.version>1.9.4</identity.notification.sender.tenant.config.version>
+        <identity.notification.sender.tenant.config.version>1.9.34</identity.notification.sender.tenant.config.version>
         <identity.event.handler.notification.imp.pkg.version.range>[1.3.15, 2.0.0)</identity.event.handler.notification.imp.pkg.version.range>
         <com.google.auth.osgi.version>1.20.0.wso2v1</com.google.auth.osgi.version>
         <com.google.api.http.clients.osgi.version>1.43.3.wso2v1</com.google.api.http.clients.osgi.version>
