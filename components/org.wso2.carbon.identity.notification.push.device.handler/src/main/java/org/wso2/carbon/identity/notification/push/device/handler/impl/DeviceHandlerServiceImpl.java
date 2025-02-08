@@ -275,10 +275,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
                     .getOrganizationManager();
             String orgId = organizationManager.resolveOrganizationId(domainIdentifier);
             String organizationName = organizationManager.getOrganizationNameById(orgId);
-            String primaryOrgId = organizationManager.getPrimaryOrganizationId(orgId);
-            String primaryTenantDomain = organizationManager.resolveTenantDomain(primaryOrgId);
 
-            registrationDiscoveryData.setTenantDomain(primaryTenantDomain);
             registrationDiscoveryData.setOrganizationId(orgId);
             registrationDiscoveryData.setOrganizationName(organizationName);
         } else {

@@ -32,6 +32,8 @@ public class PushNotificationData {
     private final String deviceToken;
     private final String username;
     private final String tenantDomain;
+    private final String organizationId;
+    private final String organizationName;
     private final String userStoreDomain;
     private final String applicationName;
     private final String notificationScenario;
@@ -48,6 +50,8 @@ public class PushNotificationData {
         this.notificationBody = builder.notificationBody;
         this.username = builder.username;
         this.tenantDomain = builder.tenantDomain;
+        this.organizationId = builder.organizationId;
+        this.organizationName = builder.organizationName;
         this.userStoreDomain = builder.userStoreDomain;
         this.applicationName = builder.applicationName;
         this.notificationScenario = builder.notificationScenario;
@@ -79,6 +83,16 @@ public class PushNotificationData {
     public String getTenantDomain() {
 
         return tenantDomain;
+    }
+
+    public String getOrganizationId() {
+
+        return organizationId;
+    }
+
+    public String getOrganizationName() {
+
+        return organizationName;
     }
 
     public String getUserStoreDomain() {
@@ -134,10 +148,15 @@ public class PushNotificationData {
     public Map<String, String> getAdditionalData() {
 
         Map<String, String> additionalData = new HashMap<>();
+        boolean isOrganizationUser = organizationId != null && organizationName != null;
         if (username != null) {
             additionalData.put("username", username);
         }
-        if (tenantDomain != null) {
+        if (isOrganizationUser) {
+            additionalData.put("organizationId", organizationId);
+            additionalData.put("organizationName", organizationName);
+        }
+        if (tenantDomain != null && !isOrganizationUser) {
             additionalData.put("tenantDomain", tenantDomain);
         }
         if (userStoreDomain != null) {
@@ -184,6 +203,8 @@ public class PushNotificationData {
         private String deviceId;
         private String username;
         private String tenantDomain;
+        private String organizationId;
+        private String organizationName;
         private String userStoreDomain;
         private String applicationName;
         private String notificationScenario;
@@ -215,6 +236,18 @@ public class PushNotificationData {
         public Builder setTenantDomain(String tenantDomain) {
 
             this.tenantDomain = tenantDomain;
+            return this;
+        }
+
+        public Builder setOrganizationId(String organizationId) {
+
+            this.organizationId = organizationId;
+            return this;
+        }
+
+        public Builder setOrganizationName(String organizationName) {
+
+            this.organizationName = organizationName;
             return this;
         }
 
