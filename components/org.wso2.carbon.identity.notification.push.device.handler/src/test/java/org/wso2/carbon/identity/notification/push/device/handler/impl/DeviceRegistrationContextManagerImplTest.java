@@ -24,10 +24,16 @@ import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
+import org.wso2.carbon.identity.application.authentication.framework.store.SessionDataStore;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCache;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCacheEntry;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCacheKey;
 import org.wso2.carbon.identity.notification.push.device.handler.model.DeviceRegistrationContext;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for DeviceRegistrationContextManagerImpl.
@@ -50,9 +56,15 @@ public class DeviceRegistrationContextManagerImplTest {
         String tenantDomain = "carbon.super";
 
         try (MockedStatic<DeviceRegistrationRequestCache> mockedCache
-                     = Mockito.mockStatic(DeviceRegistrationRequestCache.class)) {
+                     = Mockito.mockStatic(DeviceRegistrationRequestCache.class);
+             MockedStatic<SessionDataStore> mockedSessionDataStore = Mockito.mockStatic(SessionDataStore.class)
+        ) {
             DeviceRegistrationRequestCache cache = Mockito.mock(DeviceRegistrationRequestCache.class);
             mockedCache.when(DeviceRegistrationRequestCache::getInstance).thenReturn(cache);
+
+            SessionDataStore sessionDataStore = Mockito.mock(SessionDataStore.class);
+            mockedSessionDataStore.when(SessionDataStore::getInstance).thenReturn(sessionDataStore);
+            doNothing().when(sessionDataStore).storeSessionData(any(), any(), any());
 
             deviceRegistrationContextManager.storeRegistrationContext(key, context, tenantDomain);
 
@@ -81,11 +93,18 @@ public class DeviceRegistrationContextManagerImplTest {
         String tenantDomain = "carbon.super";
 
         try (MockedStatic<DeviceRegistrationRequestCache> mockedCache
-                     = Mockito.mockStatic(DeviceRegistrationRequestCache.class)) {
+                     = Mockito.mockStatic(DeviceRegistrationRequestCache.class);
+             MockedStatic<SessionDataStore> mockedSessionDataStore = Mockito.mockStatic(SessionDataStore.class)
+        ) {
             DeviceRegistrationRequestCache cache = Mockito.mock(DeviceRegistrationRequestCache.class);
             mockedCache.when(DeviceRegistrationRequestCache::getInstance).thenReturn(cache);
             Mockito.when(cache.getValueFromCache(new DeviceRegistrationRequestCacheKey(key), tenantDomain))
                     .thenReturn(new DeviceRegistrationRequestCacheEntry(context));
+
+            SessionDataStore sessionDataStore = Mockito.mock(SessionDataStore.class);
+            mockedSessionDataStore.when(SessionDataStore::getInstance).thenReturn(sessionDataStore);
+            DeviceRegistrationRequestCacheEntry entry = new DeviceRegistrationRequestCacheEntry(null);
+            when(sessionDataStore.getSessionData(anyString(), anyString())).thenReturn(entry);
 
             DeviceRegistrationContext result = deviceRegistrationContextManager.getContext(key, tenantDomain);
 
@@ -101,11 +120,18 @@ public class DeviceRegistrationContextManagerImplTest {
         String tenantDomain = "carbon.super";
 
         try (MockedStatic<DeviceRegistrationRequestCache> mockedCache
-                     = Mockito.mockStatic(DeviceRegistrationRequestCache.class)) {
+                     = Mockito.mockStatic(DeviceRegistrationRequestCache.class);
+             MockedStatic<SessionDataStore> mockedSessionDataStore = Mockito.mockStatic(SessionDataStore.class)
+        ) {
             DeviceRegistrationRequestCache cache = Mockito.mock(DeviceRegistrationRequestCache.class);
             mockedCache.when(DeviceRegistrationRequestCache::getInstance).thenReturn(cache);
             Mockito.when(cache.getValueFromCache(new DeviceRegistrationRequestCacheKey(key), tenantDomain))
                     .thenReturn(null);
+
+            SessionDataStore sessionDataStore = Mockito.mock(SessionDataStore.class);
+            mockedSessionDataStore.when(SessionDataStore::getInstance).thenReturn(sessionDataStore);
+            DeviceRegistrationRequestCacheEntry entry = new DeviceRegistrationRequestCacheEntry(null);
+            when(sessionDataStore.getSessionData(anyString(), anyString())).thenReturn(entry);
 
             DeviceRegistrationContext result = deviceRegistrationContextManager.getContext(key, tenantDomain);
 
@@ -119,10 +145,17 @@ public class DeviceRegistrationContextManagerImplTest {
         String key = "testKey";
         String tenantDomain = "carbon.super";
 
-        try (MockedStatic<DeviceRegistrationRequestCache> mockedCache
-                     = Mockito.mockStatic(DeviceRegistrationRequestCache.class)) {
+        try (MockedStatic<DeviceRegistrationRequestCache> mockedCache =
+                     Mockito.mockStatic(DeviceRegistrationRequestCache.class);
+            MockedStatic<SessionDataStore> mockedSessionDataStore = Mockito.mockStatic(SessionDataStore.class)
+        ) {
+
             DeviceRegistrationRequestCache cache = Mockito.mock(DeviceRegistrationRequestCache.class);
             mockedCache.when(DeviceRegistrationRequestCache::getInstance).thenReturn(cache);
+
+            SessionDataStore sessionDataStore = Mockito.mock(SessionDataStore.class);
+            mockedSessionDataStore.when(SessionDataStore::getInstance).thenReturn(sessionDataStore);
+            doNothing().when(sessionDataStore).clearSessionData(key, "DEVICE_REGISTRATION_REQUEST_CACHE");
 
             deviceRegistrationContextManager.clearContext(key, tenantDomain);
 

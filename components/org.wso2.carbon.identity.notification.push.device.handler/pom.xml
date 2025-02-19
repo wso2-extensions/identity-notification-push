@@ -40,6 +40,10 @@
             <artifactId>org.wso2.carbon.identity.core</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.application.authentication.framework</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wso2.carbon.identity.organization.management.core</groupId>
             <artifactId>org.wso2.carbon.identity.organization.management.service</artifactId>
         </dependency>
@@ -133,6 +137,7 @@
                             org.wso2.carbon.identity.notification.sender.tenant.config; version="${identity.event.handler.notification.imp.pkg.version.range}",
                             org.wso2.carbon.identity.notification.sender.tenant.config.dto; version="${identity.event.handler.notification.imp.pkg.version.range}",
                             org.wso2.carbon.identity.notification.sender.tenant.config.exception; version="${identity.event.handler.notification.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.application.authentication.framework.store; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.utils; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.utils.multitenancy; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.database.utils.jdbc;version="${org.wso2.carbon.database.utils.version.range}",
