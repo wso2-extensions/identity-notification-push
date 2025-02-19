@@ -91,7 +91,7 @@ public class PushDeviceHandlerConstants {
         ),
         ERROR_CODE_DEVICE_ALREADY_REGISTERED(
                 "PDH-15003",
-                "Device already registered for the device ID: %s."
+                "The corresponding user has already registered a device for push notification."
         ),
         ERROR_CODE_SIGNATURE_VERIFICATION_FAILED(
                 "PDH-15004",

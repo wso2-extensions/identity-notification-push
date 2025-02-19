@@ -351,10 +351,9 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         try {
             Device existingDevice = getDeviceByUserId(userId, tenantDomain);
             if (existingDevice != null) {
-                String errorMessage = String.format(ERROR_CODE_DEVICE_ALREADY_REGISTERED.toString(),
-                        registrationRequest.getDeviceId());
                 throw new PushDeviceHandlerClientException(
-                        ERROR_CODE_DEVICE_ALREADY_REGISTERED.getCode(), errorMessage);
+                        ERROR_CODE_DEVICE_ALREADY_REGISTERED.getCode(),
+                        ERROR_CODE_DEVICE_ALREADY_REGISTERED.toString());
             }
         } catch (PushDeviceHandlerClientException e) {
             // This means there is no existing device registered for the user.
