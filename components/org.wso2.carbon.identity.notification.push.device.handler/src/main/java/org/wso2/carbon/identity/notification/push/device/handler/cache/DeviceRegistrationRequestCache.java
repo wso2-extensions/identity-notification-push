@@ -21,13 +21,14 @@ package org.wso2.carbon.identity.notification.push.device.handler.cache;
 import org.wso2.carbon.identity.core.cache.BaseCache;
 import org.wso2.carbon.utils.CarbonUtils;
 
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEVICE_REGISTRATION_REQUEST_CACHE;
+
 /**
  * Device registration request cache.
  */
 public class DeviceRegistrationRequestCache extends BaseCache<DeviceRegistrationRequestCacheKey,
         DeviceRegistrationRequestCacheEntry> {
 
-    private static final String DEVICE_REGISTRATION_REQUEST_CACHE = "DeviceRegistrationRequestCache";
     private static volatile DeviceRegistrationRequestCache instance;
 
     /**
@@ -35,7 +36,7 @@ public class DeviceRegistrationRequestCache extends BaseCache<DeviceRegistration
      */
     private DeviceRegistrationRequestCache() {
 
-        super(DEVICE_REGISTRATION_REQUEST_CACHE);
+        super(DEVICE_REGISTRATION_REQUEST_CACHE, true);
     }
 
     /**
