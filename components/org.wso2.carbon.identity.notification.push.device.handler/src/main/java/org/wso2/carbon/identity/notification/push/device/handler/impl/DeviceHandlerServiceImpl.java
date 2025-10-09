@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.notification.push.device.handler.impl;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.wso2.carbon.context.PrivilegedCarbonContext;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
@@ -37,6 +38,7 @@ import org.wso2.carbon.identity.notification.push.device.handler.model.Device;
 import org.wso2.carbon.identity.notification.push.device.handler.model.DeviceRegistrationContext;
 import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationDiscoveryData;
 import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationRequest;
+import org.wso2.carbon.identity.notification.push.device.handler.utils.DeviceHandlerAuditLogger;
 import org.wso2.carbon.identity.notification.push.provider.PushProvider;
 import org.wso2.carbon.identity.notification.push.provider.exception.PushProviderException;
 import org.wso2.carbon.identity.notification.push.provider.model.PushDeviceData;
@@ -88,6 +90,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
     private static final Log LOG = LogFactory.getLog(DeviceHandlerServiceImpl.class);
     private DeviceDAO deviceDAO;
     private DeviceRegistrationContextManager deviceRegistrationContextManager;
+    private static final DeviceHandlerAuditLogger AUDIT_LOGGER = new DeviceHandlerAuditLogger();
 
     /**
      * Constructor of DeviceHandlerServiceImpl.
@@ -136,8 +139,20 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
         Optional<Device> device = deviceDAO.getDevice(deviceId);
         if (device.isPresent()) {
+            Device deviceToDelete = device.get();
+            String initiator = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUsername();
+
             handleDeleteDeviceForProvider(device.get());
             deviceDAO.unregisterDevice(deviceId);
+            AUDIT_LOGGER.printAuditLog(
+                    DeviceHandlerAuditLogger.Operation.REMOVE_DEVICE,
+                    deviceId,
+                    deviceToDelete.getUserId(),
+                    initiator
+            );
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(String.format("Device %s unregistered by %s", deviceId, initiator));
+            }
         } else {
             throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND.getCode(),
                     String.format(ERROR_CODE_DEVICE_NOT_FOUND.getMessage(), deviceId));
@@ -163,6 +178,17 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         }
         handleDeleteDeviceForProvider(device);
         deviceDAO.unregisterDevice(deviceId);
+
+        String initiator = device.getUserId();
+        AUDIT_LOGGER.printAuditLog(
+                DeviceHandlerAuditLogger.Operation.REMOVE_DEVICE,
+                deviceId,
+                device.getUserId(),
+                initiator
+        );
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(String.format("Device %s unregistered by mobile user %s", deviceId, initiator));
+        }
     }
 
     @Override
@@ -173,7 +199,18 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         if (device.isPresent()) {
             handleDeleteDeviceForProvider(device.get());
             String deviceId = device.get().getDeviceId();
+            String initiator = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUsername();
             deviceDAO.unregisterDevice(deviceId);
+
+            AUDIT_LOGGER.printAuditLog(
+                    DeviceHandlerAuditLogger.Operation.REMOVE_DEVICE,
+                    deviceId,
+                    userId,
+                    initiator
+            );
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(String.format("Device %s for user %s unregistered by %s", deviceId, userId, initiator));
+            }
         } else {
             throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getCode(),
                     String.format(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getMessage(), userId));
@@ -264,7 +301,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * Resolve the tenant and organization information.
      *
      * @param registrationDiscoveryData Registration discovery data.
-     * @param domainIdentifier          Tenant domain or Org Id of the user.
+     * @param domainIdentifier          Tenant domain or Org ID of the user.
      * @throws OrganizationManagementException Organization Management Exception.
      */
     private void resolveTenantAndOrganizationInfo(RegistrationDiscoveryData registrationDiscoveryData,
