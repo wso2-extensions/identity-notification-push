@@ -43,24 +43,25 @@ public class DeviceHandlerAuditLogger {
      * @param deviceId  Device ID to be logged.
      * @param userId    User ID associated with the device.
      */
-    public void printAuditLog(Operation operation, String deviceId, String userId, String initiator) {
+    public void printAuditLog(Operation operation, String deviceId, String userId) {
 
-        JSONObject data = createAuditLogEntry(deviceId, userId, initiator);
-        buildAuditLog(operation, data);
+        JSONObject data = createAuditLogEntry(userId);
+        buildAuditLog(operation, deviceId, data);
     }
 
     /**
      * Build audit log using the provided data.
      *
-     * @param operation Operation to be logged.
+     * @param operation  Operation to be logged.
+     * @param targetId   Target ID associated with the operation.
      * @param data      Data to be logged.
      */
-    private void buildAuditLog(Operation operation, JSONObject data) {
+    private void buildAuditLog(Operation operation, String targetId, JSONObject data) {
 
         AuditLog.AuditLogBuilder auditLogBuilder = new AuditLog.AuditLogBuilder(getInitiatorId(),
                 LoggerUtils.getInitiatorType(getInitiatorId()),
-                LoggerUtils.Initiator.System.name(),
-                LogConstants.TARGET_DEVICE,
+                targetId,
+                LogConstants.TARGET_TYPE_FIELD,
                 operation.getLogAction()).
                 data(jsonObjectToMap(data));
         triggerAuditLogEvent(auditLogBuilder);
@@ -69,16 +70,13 @@ public class DeviceHandlerAuditLogger {
     /**
      * Create audit log data with minimal device information.
      *
-     * @param deviceId Device ID to be logged.
      * @param userId   User ID associated with the device.
      * @return Audit log data.
      */
-    private JSONObject createAuditLogEntry(String deviceId, String userId, String initiator) {
+    private JSONObject createAuditLogEntry(String userId) {
 
         JSONObject data = new JSONObject();
-        data.put(LogConstants.DEVICE_ID_FIELD, deviceId != null ? deviceId : JSONObject.NULL);
-        data.put(LogConstants.USER_ID_FIELD, userId != null ? userId : JSONObject.NULL);
-        data.put(LogConstants.INITIATOR, initiator != null ? initiator : JSONObject.NULL);
+        data.put(LogConstants.UNREGISTERED_AT, System.currentTimeMillis());
 
         return data;
     }
@@ -129,7 +127,8 @@ public class DeviceHandlerAuditLogger {
      * Device handler operations to be logged.
      */
     public enum Operation {
-        REMOVE_DEVICE("remove-device");
+
+        UNREGISTER_DEVICE("Unregister-Push-Auth-Device");
 
         private final String logAction;
 
@@ -149,9 +148,7 @@ public class DeviceHandlerAuditLogger {
      */
     private static class LogConstants {
 
-        public static final String TARGET_DEVICE = "Device";
-        public static final String DEVICE_ID_FIELD = "DeviceId";
-        public static final String USER_ID_FIELD = "UserId";
-        public static final String INITIATOR = "Initiator";
+        public static final String TARGET_TYPE_FIELD = "Push-Auth-Device";
+        public static final String UNREGISTERED_AT = "UnregisteredAt";
     }
 }

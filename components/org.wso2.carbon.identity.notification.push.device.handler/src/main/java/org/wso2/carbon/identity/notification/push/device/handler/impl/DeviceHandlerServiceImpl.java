@@ -140,19 +140,14 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         Optional<Device> device = deviceDAO.getDevice(deviceId);
         if (device.isPresent()) {
             Device deviceToDelete = device.get();
-            String initiator = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUsername();
 
             handleDeleteDeviceForProvider(device.get());
             deviceDAO.unregisterDevice(deviceId);
             AUDIT_LOGGER.printAuditLog(
-                    DeviceHandlerAuditLogger.Operation.REMOVE_DEVICE,
+                    DeviceHandlerAuditLogger.Operation.UNREGISTER_DEVICE,
                     deviceId,
-                    deviceToDelete.getUserId(),
-                    initiator
+                    deviceToDelete.getUserId()
             );
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Device %s unregistered by %s", deviceId, initiator));
-            }
         } else {
             throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND.getCode(),
                     String.format(ERROR_CODE_DEVICE_NOT_FOUND.getMessage(), deviceId));
@@ -178,17 +173,11 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         }
         handleDeleteDeviceForProvider(device);
         deviceDAO.unregisterDevice(deviceId);
-
-        String initiator = device.getUserId();
         AUDIT_LOGGER.printAuditLog(
-                DeviceHandlerAuditLogger.Operation.REMOVE_DEVICE,
+                DeviceHandlerAuditLogger.Operation.UNREGISTER_DEVICE,
                 deviceId,
-                device.getUserId(),
-                initiator
+                device.getUserId()
         );
-        if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format("Device %s unregistered by mobile user %s", deviceId, initiator));
-        }
     }
 
     @Override
@@ -199,18 +188,13 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         if (device.isPresent()) {
             handleDeleteDeviceForProvider(device.get());
             String deviceId = device.get().getDeviceId();
-            String initiator = PrivilegedCarbonContext.getThreadLocalCarbonContext().getUsername();
-            deviceDAO.unregisterDevice(deviceId);
 
+            deviceDAO.unregisterDevice(deviceId);
             AUDIT_LOGGER.printAuditLog(
-                    DeviceHandlerAuditLogger.Operation.REMOVE_DEVICE,
+                    DeviceHandlerAuditLogger.Operation.UNREGISTER_DEVICE,
                     deviceId,
-                    userId,
-                    initiator
+                    userId
             );
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Device %s for user %s unregistered by %s", deviceId, userId, initiator));
-            }
         } else {
             throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getCode(),
                     String.format(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getMessage(), userId));
