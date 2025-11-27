@@ -34,6 +34,7 @@ import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.lang.reflect.Method;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -57,8 +58,8 @@ public class DeviceHandlerAuditLoggerTest {
 
         System.setProperty("carbon.home", ".");
         MockitoAnnotations.openMocks(this);
-        auditLogger = new DeviceHandlerAuditLogger();
 
+        // Setup mocks BEFORE creating the audit logger instance
         mockedCarbonContext = mockStatic(CarbonContext.class);
         mockedUserCoreUtil = mockStatic(UserCoreUtil.class);
         mockedMultitenantUtils = mockStatic(MultitenantUtils.class);
@@ -69,12 +70,22 @@ public class DeviceHandlerAuditLoggerTest {
         mockedCarbonContext.when(CarbonContext::getThreadLocalCarbonContext).thenReturn(carbonContext);
         when(carbonContext.getUsername()).thenReturn("testUser");
         when(carbonContext.getTenantDomain()).thenReturn("carbon.super");
-        mockedIdentityUtil.when(() -> IdentityUtil.getInitiatorId("testUser", "carbon.super")).
-                thenReturn("initiator-id-test");
+
+        mockedUserCoreUtil.when(() -> UserCoreUtil.addTenantDomainToEntry("testUser", "carbon.super"))
+                .thenReturn("testUser@carbon.super");
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantAwareUsername("testUser@carbon.super"))
+                .thenReturn("testUser");
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain("testUser@carbon.super"))
+                .thenReturn("carbon.super");
+        mockedIdentityUtil.when(() -> IdentityUtil.getInitiatorId("testUser", "carbon.super"))
+                .thenReturn("initiator-id-test");
+        mockedLoggerUtils.when(() -> LoggerUtils.getMaskedContent(anyString())).thenReturn("masked-content");
+        auditLogger = new DeviceHandlerAuditLogger();
     }
 
     @AfterMethod
     public void tearDown() {
+
         mockedCarbonContext.close();
         mockedUserCoreUtil.close();
         mockedMultitenantUtils.close();
@@ -87,12 +98,15 @@ public class DeviceHandlerAuditLoggerTest {
      */
     @Test
     public void testGetUserRegularUser() throws Exception {
-        // Act: Invoke the private method using reflection.
+
+        when(carbonContext.getUsername()).thenReturn("admin");
+        when(carbonContext.getTenantDomain()).thenReturn("carbon.super");
+        mockedUserCoreUtil.when(() -> UserCoreUtil.addTenantDomainToEntry("admin", "carbon.super"))
+                .thenReturn("admin@carbon.super");
+
         Method getUserMethod = DeviceHandlerAuditLogger.class.getDeclaredMethod("getUser");
         getUserMethod.setAccessible(true);
         String result = (String) getUserMethod.invoke(auditLogger);
-
-        // Assert
         Assert.assertEquals(result, "admin@carbon.super");
     }
 
@@ -101,12 +115,11 @@ public class DeviceHandlerAuditLoggerTest {
      */
     @Test
     public void testGetUserWithSystemUser() throws Exception {
-        // Act
+
+        when(carbonContext.getUsername()).thenReturn(null);
         Method getUserMethod = DeviceHandlerAuditLogger.class.getDeclaredMethod("getUser");
         getUserMethod.setAccessible(true);
         String result = (String) getUserMethod.invoke(auditLogger);
-
-        // Assert
         Assert.assertEquals(result, CarbonConstants.REGISTRY_SYSTEM_USERNAME);
     }
 
@@ -115,39 +128,64 @@ public class DeviceHandlerAuditLoggerTest {
      */
     @Test
     public void testCreateAuditLogEntryWithValidData() throws Exception {
-        // Arrange
-        String deviceId = "device-123";
-        String userId = "user-456";
-        String initiator = "admin";
 
-        // Act
-        Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class.getDeclaredMethod("createAuditLogEntry",
-                String.class, String.class, String.class);
+        Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class
+                .getDeclaredMethod("createAuditLogEntry", String.class);
         createAuditLogEntryMethod.setAccessible(true);
-        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(auditLogger, deviceId, userId, initiator);
+        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(auditLogger, "testUserId");
 
-        // Assert
         Assert.assertNotNull(result);
-        Assert.assertEquals(result.getString("DeviceId"), deviceId);
-        Assert.assertEquals(result.getString("UserId"), userId);
-        Assert.assertEquals(result.getString("Initiator"), initiator);
+        Assert.assertTrue(result.has("UserId"));
+        Assert.assertEquals(result.getString("UserId"), "testUserId");
+        Assert.assertTrue(result.has("UnregisteredAt"));
+        Assert.assertTrue(result.getLong("UnregisteredAt") > 0);
     }
 
     /**
-     * Test the private method 'createAuditLogEntry' with null data to ensure it's handled correctly.
+     * Test the private method 'getInitiatorId'.
      */
     @Test
-    public void testCreateAuditLogEntryWithNullData() throws Exception {
-        // Act
-        Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class.getDeclaredMethod("createAuditLogEntry",
-                String.class, String.class, String.class);
-        createAuditLogEntryMethod.setAccessible(true);
-        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(auditLogger, null, null, null);
+    public void testGetInitiatorId() throws Exception {
 
-        // Assert
-        Assert.assertNotNull(result);
-        Assert.assertTrue(result.isNull("DeviceId"));
-        Assert.assertTrue(result.isNull("UserId"));
-        Assert.assertTrue(result.isNull("Initiator"));
+        when(carbonContext.getUsername()).thenReturn("testUser");
+        when(carbonContext.getTenantDomain()).thenReturn("carbon.super");
+        mockedUserCoreUtil.when(() -> UserCoreUtil.addTenantDomainToEntry("testUser", "carbon.super"))
+                .thenReturn("testUser@carbon.super");
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantAwareUsername("testUser@carbon.super"))
+                .thenReturn("testUser");
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain("testUser@carbon.super"))
+                .thenReturn("carbon.super");
+        mockedIdentityUtil.when(() -> IdentityUtil.getInitiatorId("testUser", "carbon.super"))
+                .thenReturn("initiator-id-12345");
+
+        Method getInitiatorIdMethod = DeviceHandlerAuditLogger.class.getDeclaredMethod("getInitiatorId");
+        getInitiatorIdMethod.setAccessible(true);
+        String result = (String) getInitiatorIdMethod.invoke(auditLogger);
+        Assert.assertEquals(result, "initiator-id-12345");
+    }
+
+    /**
+     * Test the private method 'getInitiatorId' for system user.
+     */
+    @Test
+    public void testGetInitiatorIdSystemUser() throws Exception {
+
+        when(carbonContext.getUsername()).thenReturn(null);
+        mockedUserCoreUtil.when(() -> UserCoreUtil.addTenantDomainToEntry(null, "carbon.super"))
+                .thenReturn(null);
+        mockedMultitenantUtils.when(() ->
+                        MultitenantUtils.getTenantAwareUsername(CarbonConstants.REGISTRY_SYSTEM_USERNAME))
+                .thenReturn(CarbonConstants.REGISTRY_SYSTEM_USERNAME);
+        mockedMultitenantUtils.when(() ->
+                        MultitenantUtils.getTenantDomain(CarbonConstants.REGISTRY_SYSTEM_USERNAME))
+                .thenReturn("carbon.super");
+        mockedIdentityUtil.when(() ->
+                        IdentityUtil.getInitiatorId(CarbonConstants.REGISTRY_SYSTEM_USERNAME, "carbon.super"))
+                .thenReturn(null);
+
+        Method getInitiatorIdMethod = DeviceHandlerAuditLogger.class.getDeclaredMethod("getInitiatorId");
+        getInitiatorIdMethod.setAccessible(true);
+        String result = (String) getInitiatorIdMethod.invoke(auditLogger);
+        Assert.assertEquals(result, LoggerUtils.Initiator.System.name());
     }
 }

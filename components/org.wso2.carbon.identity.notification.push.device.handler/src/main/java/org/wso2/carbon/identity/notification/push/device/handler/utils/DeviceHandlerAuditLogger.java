@@ -70,12 +70,12 @@ public class DeviceHandlerAuditLogger {
     /**
      * Create audit log data with minimal device information.
      *
-     * @param userId   User ID associated with the device.
      * @return Audit log data.
      */
     private JSONObject createAuditLogEntry(String userId) {
 
         JSONObject data = new JSONObject();
+        data.put(LogConstants.END_USER_ID, userId != null ? userId : JSONObject.NULL);
         data.put(LogConstants.UNREGISTERED_AT, System.currentTimeMillis());
 
         return data;
@@ -149,6 +149,7 @@ public class DeviceHandlerAuditLogger {
     private static class LogConstants {
 
         public static final String TARGET_TYPE_FIELD = "Push-Auth-Device";
+        public static final String END_USER_ID = "UserId";
         public static final String UNREGISTERED_AT = "UnregisteredAt";
     }
 }
