@@ -103,9 +103,7 @@ public class FCMPushProvider implements PushProvider {
             FirebaseApp.initializeApp(options, appName);
             log.debug("Successfully initialized the firebase app.");
         } else {
-            if (log.isDebugEnabled()) {
-                log.debug("Using existing Firebase app instance.");
-            }
+            log.debug("Using existing Firebase app instance.");
         }
 
         FirebaseApp firebaseApp = FirebaseApp.getInstance(appName);
