@@ -19,6 +19,7 @@
 package org.wso2.carbon.identity.notification.push.device.handler.impl;
 
 import org.wso2.carbon.identity.application.authentication.framework.store.SessionDataStore;
+import org.wso2.carbon.identity.core.util.IdentityCacheUtil;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceRegistrationContextManager;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCache;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCacheEntry;
@@ -50,8 +51,12 @@ public class DeviceRegistrationContextManagerImpl implements DeviceRegistrationC
         if (cacheEntry != null) {
             return cacheEntry.getDeviceRegistrationContext();
         } else {
-            return getFromSessionStore(key).getDeviceRegistrationContext();
+            cacheEntry = getFromSessionStore(key);
+            if (IdentityCacheUtil.isCacheEntryExpired(cacheEntry)) {
+                return cacheEntry.getDeviceRegistrationContext();
+            }
         }
+        return null;
     }
 
     @Override
