@@ -41,6 +41,7 @@ import org.wso2.carbon.identity.secret.mgt.core.exception.SecretManagementExcept
 import org.wso2.carbon.identity.secret.mgt.core.model.ResolvedSecret;
 import org.wso2.carbon.identity.secret.mgt.core.model.SecretType;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -309,7 +310,7 @@ public class FCMPushProviderTest {
         }
     }
 
-    @Test(priority = 15, expectedExceptions = {PushProviderException.class})
+    @Test(priority = 16, expectedExceptions = {PushProviderException.class})
     public void testRetrievePushProviderSecretPropertiesFailBySecret() throws PushProviderException {
 
         Map<String, String> properties = new HashMap<>();
@@ -332,7 +333,7 @@ public class FCMPushProviderTest {
         }
     }
 
-    @Test(priority = 16)
+    @Test(priority = 17)
     public void testDeletePushProviderSecretProperties() throws PushProviderException, SecretManagementException {
 
         Map<String, String> properties = new HashMap<>();
@@ -354,7 +355,7 @@ public class FCMPushProviderTest {
         }
     }
 
-    @Test(priority = 17)
+    @Test(priority = 18)
     public void testDeletePushProviderSecretPropertiesFalsePositive()
             throws PushProviderException, SecretManagementException {
 
@@ -377,7 +378,7 @@ public class FCMPushProviderTest {
         }
     }
 
-    @Test(priority = 18, expectedExceptions = {PushProviderException.class})
+    @Test(priority = 19, expectedExceptions = {PushProviderException.class})
     public void testDeletePushProviderSecretPropertiesFail()
             throws PushProviderException, SecretManagementException {
 
@@ -401,7 +402,7 @@ public class FCMPushProviderTest {
         }
     }
 
-    @Test(priority = 19, expectedExceptions = {PushProviderException.class})
+    @Test(priority = 20, expectedExceptions = {PushProviderException.class})
     public void testSendNotificationFailWithException() throws PushProviderException, FirebaseMessagingException {
 
         try (MockedStatic<GoogleCredentials> mockedCredentials = Mockito.mockStatic(GoogleCredentials.class)) {
@@ -430,6 +431,427 @@ public class FCMPushProviderTest {
                         .build();
 
                 fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+            }
+        }
+    }
+
+    @Test(priority = 21, expectedExceptions = {PushProviderException.class})
+    public void testSendNotificationFailWithBlankServiceAccount() throws PushProviderException {
+
+        when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId2");
+        Map<String, String> properties = new HashMap<>();
+        properties.put(FCM_SERVICE_ACCOUNT_SECRET, "");
+        when(pushSenderData.getProperties()).thenReturn(properties);
+
+        PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                .setNotificationTitle("Test Title")
+                .setNotificationBody("Test Body")
+                .setDeviceToken("testDeviceToken")
+                .build();
+
+        fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+    }
+
+    @Test(priority = 22, expectedExceptions = {PushProviderException.class})
+    public void testSendNotificationFailWithIOException() throws PushProviderException {
+
+        try (MockedStatic<GoogleCredentials> mockedCredentials = Mockito.mockStatic(GoogleCredentials.class)) {
+
+            mockedCredentials.when(() -> GoogleCredentials.fromStream(Mockito.any(InputStream.class)))
+                    .thenThrow(new IOException("Invalid JSON"));
+
+            when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId3");
+            Map<String, String> properties = new HashMap<>();
+            properties.put(FCM_SERVICE_ACCOUNT_SECRET, ENCODED_SERVICE_ACCOUNT_STRING);
+            when(pushSenderData.getProperties()).thenReturn(properties);
+
+            PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                    .setNotificationTitle("Test Title")
+                    .setNotificationBody("Test Body")
+                    .setDeviceToken("testDeviceToken")
+                    .build();
+
+            fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+        }
+    }
+
+    @Test(priority = 23, expectedExceptions = {PushProviderException.class})
+    public void testSendNotificationFailWithInvalidArgumentError() throws PushProviderException,
+            FirebaseMessagingException {
+
+        try (MockedStatic<GoogleCredentials> mockedCredentials = Mockito.mockStatic(GoogleCredentials.class)) {
+
+            mockedCredentials.when(() -> GoogleCredentials.fromStream(Mockito.any(InputStream.class)))
+                    .thenReturn(googleCredentials);
+
+            when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId4");
+            Map<String, String> properties = new HashMap<>();
+            properties.put(FCM_SERVICE_ACCOUNT_SECRET, ENCODED_SERVICE_ACCOUNT_STRING);
+            when(pushSenderData.getProperties()).thenReturn(properties);
+
+            try (MockedStatic<FirebaseMessaging> mockedFirebaseMessaging =
+                         Mockito.mockStatic(FirebaseMessaging.class)) {
+
+                FirebaseMessaging firebaseMessaging = Mockito.mock(FirebaseMessaging.class);
+                mockedFirebaseMessaging.when(() -> FirebaseMessaging.getInstance(Mockito.any(FirebaseApp.class)))
+                        .thenReturn(firebaseMessaging);
+
+                FirebaseMessagingException firebaseException = Mockito.mock(FirebaseMessagingException.class);
+                when(firebaseException.getMessagingErrorCode())
+                        .thenReturn(com.google.firebase.messaging.MessagingErrorCode.INVALID_ARGUMENT);
+                when(firebaseMessaging.send(Mockito.any(Message.class)))
+                        .thenThrow(firebaseException);
+
+                PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                        .setNotificationTitle("Test Title")
+                        .setNotificationBody("Test Body")
+                        .setDeviceToken("testDeviceToken")
+                        .build();
+
+                fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+            }
+        }
+    }
+
+    @Test(priority = 24, expectedExceptions = {PushProviderException.class})
+    public void testSendNotificationFailWithUnregisteredError() throws PushProviderException,
+            FirebaseMessagingException {
+
+        try (MockedStatic<GoogleCredentials> mockedCredentials = Mockito.mockStatic(GoogleCredentials.class)) {
+
+            mockedCredentials.when(() -> GoogleCredentials.fromStream(Mockito.any(InputStream.class)))
+                    .thenReturn(googleCredentials);
+
+            when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId5");
+            Map<String, String> properties = new HashMap<>();
+            properties.put(FCM_SERVICE_ACCOUNT_SECRET, ENCODED_SERVICE_ACCOUNT_STRING);
+            when(pushSenderData.getProperties()).thenReturn(properties);
+
+            try (MockedStatic<FirebaseMessaging> mockedFirebaseMessaging =
+                         Mockito.mockStatic(FirebaseMessaging.class)) {
+
+                FirebaseMessaging firebaseMessaging = Mockito.mock(FirebaseMessaging.class);
+                mockedFirebaseMessaging.when(() -> FirebaseMessaging.getInstance(Mockito.any(FirebaseApp.class)))
+                        .thenReturn(firebaseMessaging);
+
+                FirebaseMessagingException firebaseException = Mockito.mock(FirebaseMessagingException.class);
+                when(firebaseException.getMessagingErrorCode())
+                        .thenReturn(com.google.firebase.messaging.MessagingErrorCode.UNREGISTERED);
+                when(firebaseMessaging.send(Mockito.any(Message.class)))
+                        .thenThrow(firebaseException);
+
+                PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                        .setNotificationTitle("Test Title")
+                        .setNotificationBody("Test Body")
+                        .setDeviceToken("testDeviceToken")
+                        .build();
+
+                fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+            }
+        }
+    }
+
+    @Test(priority = 25, expectedExceptions = {PushProviderException.class})
+    public void testStorePushProviderSecretPropertiesFailWithSecretManagementException()
+            throws PushProviderException, SecretManagementException {
+
+        Map<String, String> properties = new HashMap<>();
+        properties.put(FCM_SERVICE_ACCOUNT_SECRET, ENCODED_SERVICE_ACCOUNT_STRING);
+        when(pushSenderData.getProperties()).thenReturn(properties);
+        when(pushSenderData.getProviderId()).thenReturn("testProviderId");
+
+        try (MockedStatic<ProviderDataHolder> mockedProviderDataHolder = Mockito.mockStatic(ProviderDataHolder.class)) {
+
+            ProviderDataHolder providerDataHolder = Mockito.mock(ProviderDataHolder.class);
+            mockedProviderDataHolder.when(ProviderDataHolder::getInstance).thenReturn(providerDataHolder);
+
+            SecretManager secretManager = Mockito.mock(SecretManager.class);
+            when(providerDataHolder.getSecretManager()).thenReturn(secretManager);
+
+            when(secretManager.isSecretExist(Mockito.anyString(), Mockito.anyString()))
+                    .thenThrow(new SecretManagementException("Error checking secret existence"));
+
+            fcmPushProvider.storePushProviderSecretProperties(pushSenderData);
+        }
+    }
+
+    @Test(priority = 26, expectedExceptions = {PushProviderException.class})
+    public void testRetrievePushProviderSecretPropertiesFailWithSecretManagementException()
+            throws PushProviderException, SecretManagementException {
+
+        Map<String, String> properties = new HashMap<>();
+        properties.put(FCM_SERVICE_ACCOUNT_SECRET, ENCODED_SERVICE_ACCOUNT_STRING);
+        when(pushSenderData.getProperties()).thenReturn(properties);
+        when(pushSenderData.getProviderId()).thenReturn("testProviderId");
+
+        try (MockedStatic<ProviderDataHolder> mockedProviderDataHolder = Mockito.mockStatic(ProviderDataHolder.class)) {
+
+            ProviderDataHolder providerDataHolder = Mockito.mock(ProviderDataHolder.class);
+            mockedProviderDataHolder.when(ProviderDataHolder::getInstance).thenReturn(providerDataHolder);
+
+            SecretManager secretManager = Mockito.mock(SecretManager.class);
+            when(providerDataHolder.getSecretManager()).thenReturn(secretManager);
+
+            SecretResolveManager secretResolveManager = Mockito.mock(SecretResolveManager.class);
+            when(providerDataHolder.getSecretResolveManager()).thenReturn(secretResolveManager);
+
+            when(secretManager.isSecretExist(Mockito.anyString(), Mockito.anyString()))
+                    .thenThrow(new SecretManagementException("Error checking secret existence"));
+
+            fcmPushProvider.retrievePushProviderSecretProperties(pushSenderData);
+        }
+    }
+
+    @Test(priority = 27)
+    public void testSendNotificationWithExistingFirebaseApp() throws PushProviderException, FirebaseMessagingException {
+
+        try (MockedStatic<GoogleCredentials> mockedCredentials = Mockito.mockStatic(GoogleCredentials.class)) {
+
+            mockedCredentials.when(() -> GoogleCredentials.fromStream(Mockito.any(InputStream.class)))
+                    .thenReturn(googleCredentials);
+
+            when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId");
+            Map<String, String> properties = new HashMap<>();
+            properties.put(FCM_SERVICE_ACCOUNT_SECRET, ENCODED_SERVICE_ACCOUNT_STRING);
+            when(pushSenderData.getProperties()).thenReturn(properties);
+
+            try (MockedStatic<FirebaseMessaging> mockedFirebaseMessaging =
+                         Mockito.mockStatic(FirebaseMessaging.class)) {
+
+                FirebaseMessaging firebaseMessaging = Mockito.mock(FirebaseMessaging.class);
+                mockedFirebaseMessaging.when(() -> FirebaseMessaging.getInstance(Mockito.any(FirebaseApp.class)))
+                        .thenReturn(firebaseMessaging);
+                when(firebaseMessaging.send(Mockito.any(Message.class))).thenReturn("mockMessageId2");
+
+                PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                        .setNotificationTitle("Test Title 2")
+                        .setNotificationBody("Test Body 2")
+                        .setDeviceToken("testDeviceToken2")
+                        .build();
+
+                // This should use the existing FirebaseApp instance from previous test
+                fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+            }
+        }
+    }
+
+    @Test(priority = 28, expectedExceptions = {PushProviderException.class})
+    public void testSendNotificationFailWithOtherFirebaseMessagingError() throws PushProviderException,
+            FirebaseMessagingException {
+
+        try (MockedStatic<GoogleCredentials> mockedCredentials = Mockito.mockStatic(GoogleCredentials.class)) {
+
+            mockedCredentials.when(() -> GoogleCredentials.fromStream(Mockito.any(InputStream.class)))
+                    .thenReturn(googleCredentials);
+
+            when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId6");
+            Map<String, String> properties = new HashMap<>();
+            properties.put(FCM_SERVICE_ACCOUNT_SECRET, ENCODED_SERVICE_ACCOUNT_STRING);
+            when(pushSenderData.getProperties()).thenReturn(properties);
+
+            try (MockedStatic<FirebaseMessaging> mockedFirebaseMessaging =
+                         Mockito.mockStatic(FirebaseMessaging.class)) {
+
+                FirebaseMessaging firebaseMessaging = Mockito.mock(FirebaseMessaging.class);
+                mockedFirebaseMessaging.when(() -> FirebaseMessaging.getInstance(Mockito.any(FirebaseApp.class)))
+                        .thenReturn(firebaseMessaging);
+
+                FirebaseMessagingException firebaseException = Mockito.mock(FirebaseMessagingException.class);
+                when(firebaseException.getMessagingErrorCode())
+                        .thenReturn(com.google.firebase.messaging.MessagingErrorCode.INTERNAL);
+                when(firebaseMessaging.send(Mockito.any(Message.class)))
+                        .thenThrow(firebaseException);
+
+                PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                        .setNotificationTitle("Test Title")
+                        .setNotificationBody("Test Body")
+                        .setDeviceToken("testDeviceToken")
+                        .build();
+
+                fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+            }
+        }
+    }
+
+    @Test(priority = 29, expectedExceptions = {PushProviderException.class})
+    public void testSendNotificationWithNullServiceAccount() throws PushProviderException {
+
+        when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId7");
+        Map<String, String> properties = new HashMap<>();
+        properties.put(FCM_SERVICE_ACCOUNT_SECRET, null);
+        when(pushSenderData.getProperties()).thenReturn(properties);
+
+        PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                .setNotificationTitle("Test Title")
+                .setNotificationBody("Test Body")
+                .setDeviceToken("testDeviceToken")
+                .build();
+
+        fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+    }
+
+    @Test(priority = 30)
+    public void testUpdateCredentialsWithNoExistingApp() throws PushProviderException {
+
+        try (MockedStatic<FirebaseApp> mockedFirebaseApp = Mockito.mockStatic(FirebaseApp.class)) {
+
+            FirebaseApp mockFirebaseApp = Mockito.mock(FirebaseApp.class);
+            when(mockFirebaseApp.getName()).thenReturn("FirebaseApp-carbon.super-differentProvider");
+
+            mockedFirebaseApp.when(FirebaseApp::getApps).thenReturn(Arrays.asList(mockFirebaseApp));
+
+            when(pushSenderData.getProviderId()).thenReturn("nonExistentProvider");
+            fcmPushProvider.updateCredentials(pushSenderData, "carbon.super");
+
+            // No app should be deleted since no match
+            verify(mockFirebaseApp, never()).delete();
+        }
+    }
+
+    @Test(priority = 31, expectedExceptions = {PushProviderException.class})
+    public void testPreProcessPropertiesWithNullServiceAccount() throws PushProviderException {
+
+        Map<String, String> properties = new HashMap<>();
+        properties.put(FCM_SERVICE_ACCOUNT_SECRET, null);
+        when(pushSenderData.getProperties()).thenReturn(properties);
+        fcmPushProvider.preProcessProperties(pushSenderData);
+    }
+
+    @Test(priority = 32, expectedExceptions = {PushProviderException.class})
+    public void testPostProcessPropertiesWithNullServiceAccount() throws PushProviderException {
+
+        Map<String, String> properties = new HashMap<>();
+        properties.put(FCM_SERVICE_ACCOUNT_SECRET, null);
+        when(pushSenderData.getProperties()).thenReturn(properties);
+        fcmPushProvider.postProcessProperties(pushSenderData);
+    }
+
+    @Test(priority = 33, expectedExceptions = {PushProviderException.class})
+    public void testStorePushProviderSecretPropertiesFailWithNull() throws PushProviderException {
+
+        Map<String, String> properties = new HashMap<>();
+        properties.put(FCM_SERVICE_ACCOUNT_SECRET, null);
+        when(pushSenderData.getProperties()).thenReturn(properties);
+        when(pushSenderData.getProviderId()).thenReturn("testProviderId");
+
+        fcmPushProvider.storePushProviderSecretProperties(pushSenderData);
+    }
+
+    @Test(priority = 34, expectedExceptions = {PushProviderException.class})
+    public void testRetrievePushProviderSecretPropertiesFailWithNull() throws PushProviderException {
+
+        Map<String, String> properties = new HashMap<>();
+        properties.put(FCM_SERVICE_ACCOUNT_SECRET, null);
+        when(pushSenderData.getProperties()).thenReturn(properties);
+        when(pushSenderData.getProviderId()).thenReturn("testProviderId");
+
+        fcmPushProvider.retrievePushProviderSecretProperties(pushSenderData);
+    }
+
+    @Test(priority = 35)
+    public void testSendNotificationWithAdditionalData() throws PushProviderException, FirebaseMessagingException {
+
+        try (MockedStatic<GoogleCredentials> mockedCredentials = Mockito.mockStatic(GoogleCredentials.class)) {
+
+            mockedCredentials.when(() -> GoogleCredentials.fromStream(Mockito.any(InputStream.class)))
+                    .thenReturn(googleCredentials);
+
+            when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId8");
+            Map<String, String> properties = new HashMap<>();
+            properties.put(FCM_SERVICE_ACCOUNT_SECRET, ENCODED_SERVICE_ACCOUNT_STRING);
+            when(pushSenderData.getProperties()).thenReturn(properties);
+
+            try (MockedStatic<FirebaseMessaging> mockedFirebaseMessaging =
+                         Mockito.mockStatic(FirebaseMessaging.class)) {
+
+                FirebaseMessaging firebaseMessaging = Mockito.mock(FirebaseMessaging.class);
+                mockedFirebaseMessaging.when(() -> FirebaseMessaging.getInstance(Mockito.any(FirebaseApp.class)))
+                        .thenReturn(firebaseMessaging);
+                when(firebaseMessaging.send(Mockito.any(Message.class))).thenReturn("mockMessageId3");
+
+                PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                        .setNotificationTitle("Test Title With Data")
+                        .setNotificationBody("Test Body With Data")
+                        .setDeviceToken("testDeviceToken3")
+                        .setUsername("testUser")
+                        .setTenantDomain("different.tenant")
+                        .setApplicationName("TestApp")
+                        .setPushId("testPushId123")
+                        .setChallenge("testChallenge")
+                        .setNumberChallenge("123456")
+                        .setIpAddress("192.168.1.1")
+                        .setDeviceId("testDeviceId")
+                        .build();
+
+                fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "different.tenant");
+            }
+        }
+    }
+
+    @Test(priority = 36, expectedExceptions = {PushProviderException.class})
+    public void testSendNotificationWithBlankServiceAccountAfterPreProcess() throws PushProviderException {
+
+        // Create a spy to partially mock the FCMPushProvider
+        FCMPushProvider spyProvider = Mockito.spy(fcmPushProvider);
+
+        when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId9");
+        Map<String, String> properties = new HashMap<>();
+        properties.put(FCM_SERVICE_ACCOUNT_SECRET, "validValue");
+        when(pushSenderData.getProperties()).thenReturn(properties);
+
+        // Mock preProcessProperties to return a map with blank service account
+        // This simulates a scenario where preprocessing results in a blank value
+        Map<String, String> processedProperties = new HashMap<>();
+        processedProperties.put(FCM_SERVICE_ACCOUNT_SECRET, "");
+        try {
+            Mockito.doReturn(processedProperties).when(spyProvider).preProcessProperties(pushSenderData);
+        } catch (PushProviderException e) {
+            throw new RuntimeException(e);
+        }
+
+        PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                .setNotificationTitle("Test Title")
+                .setNotificationBody("Test Body")
+                .setDeviceToken("testDeviceToken")
+                .build();
+
+        // This should trigger lines 86-87: check for blank after preProcess and throw exception
+        spyProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+    }
+
+    @Test(priority = 37)
+    public void testSendNotificationWithDebugLoggingEnabled() throws PushProviderException, FirebaseMessagingException {
+
+        try (MockedStatic<GoogleCredentials> mockedCredentials = Mockito.mockStatic(GoogleCredentials.class)) {
+
+            mockedCredentials.when(() -> GoogleCredentials.fromStream(Mockito.any(InputStream.class)))
+                    .thenReturn(googleCredentials);
+
+            when(pushSenderData.getProviderId()).thenReturn("testFCMProviderId10");
+            Map<String, String> properties = new HashMap<>();
+            properties.put(FCM_SERVICE_ACCOUNT_SECRET, ENCODED_SERVICE_ACCOUNT_STRING);
+            when(pushSenderData.getProperties()).thenReturn(properties);
+
+            try (MockedStatic<FirebaseMessaging> mockedFirebaseMessaging =
+                         Mockito.mockStatic(FirebaseMessaging.class)) {
+
+                FirebaseMessaging firebaseMessaging = Mockito.mock(FirebaseMessaging.class);
+                mockedFirebaseMessaging.when(() -> FirebaseMessaging.getInstance(Mockito.any(FirebaseApp.class)))
+                        .thenReturn(firebaseMessaging);
+                when(firebaseMessaging.send(Mockito.any(Message.class))).thenReturn("mockMessageIdDebug");
+
+                PushNotificationData pushNotificationData = new PushNotificationData.Builder()
+                        .setNotificationTitle("Test Title Debug")
+                        .setNotificationBody("Test Body Debug")
+                        .setDeviceToken("testDeviceTokenDebug")
+                        .build();
+
+                // This test ensures the successful message sending path is covered
+                // The debug log statement at line 128-129 will be executed if debug is enabled
+                fcmPushProvider.sendNotification(pushNotificationData, pushSenderData, "carbon.super");
+
+                // Verify that the send method was called successfully
+                verify(firebaseMessaging, times(1)).send(Mockito.any(Message.class));
             }
         }
     }
