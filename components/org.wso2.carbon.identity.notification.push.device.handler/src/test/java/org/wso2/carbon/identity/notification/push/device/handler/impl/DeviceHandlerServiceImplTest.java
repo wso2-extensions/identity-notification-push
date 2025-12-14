@@ -27,8 +27,12 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
+import org.wso2.carbon.context.CarbonContext;
+import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceRegistrationContextManager;
@@ -52,6 +56,7 @@ import org.wso2.carbon.identity.organization.management.service.util.Organizatio
 import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
+import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.security.NoSuchAlgorithmException;
@@ -67,6 +72,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.HASHING_ALGORITHM;
 
@@ -79,6 +85,12 @@ public class DeviceHandlerServiceImplTest {
     private String signature;
     private String deviceToken;
     private String validJwt;
+
+    private static MockedStatic<CarbonContext> mockedCarbonContext;
+    private static MockedStatic<UserCoreUtil> mockedUserCoreUtil;
+    private static MockedStatic<MultitenantUtils> mockedMultitenantUtils;
+    private static MockedStatic<IdentityUtil> mockedIdentityUtil;
+    private static MockedStatic<LoggerUtils> mockedLoggerUtils;
 
     @Mock
     private DeviceRegistrationContextManager deviceRegistrationContextManager;
@@ -94,6 +106,75 @@ public class DeviceHandlerServiceImplTest {
 
     @InjectMocks
     DeviceHandlerServiceImpl deviceHandlerService;
+
+    @BeforeClass
+    public static void setUpClass() {
+        // Mock static dependencies needed by AUDIT_LOGGER before class loading
+        System.setProperty("carbon.home", ".");
+
+        mockedCarbonContext = mockStatic(CarbonContext.class);
+        mockedUserCoreUtil = mockStatic(UserCoreUtil.class);
+        mockedMultitenantUtils = mockStatic(MultitenantUtils.class);
+        mockedIdentityUtil = mockStatic(IdentityUtil.class);
+        mockedLoggerUtils = mockStatic(LoggerUtils.class);
+
+        CarbonContext carbonContext = mock(CarbonContext.class);
+        mockedCarbonContext.when(CarbonContext::getThreadLocalCarbonContext).thenReturn(carbonContext);
+        when(carbonContext.getUsername()).thenReturn("testUser");
+        when(carbonContext.getTenantDomain()).thenReturn("carbon.super");
+
+        mockedUserCoreUtil.when(() -> UserCoreUtil.addTenantDomainToEntry(anyString(), anyString()))
+                .thenAnswer(invocation -> {
+                    String username = invocation.getArgument(0);
+                    String tenantDomain = invocation.getArgument(1);
+                    if (username == null) {
+                        return null;
+                    }
+                    return username + "@" + tenantDomain;
+                });
+
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantAwareUsername(anyString()))
+                .thenAnswer(invocation -> {
+                    String username = invocation.getArgument(0);
+                    if (username == null) {
+                        return null;
+                    }
+                    return username.contains("@") ? username.split("@")[0] : username;
+                });
+
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain(anyString()))
+                .thenAnswer(invocation -> {
+                    String username = invocation.getArgument(0);
+                    if (username == null) {
+                        return "carbon.super";
+                    }
+                    return username.contains("@") ? username.split("@")[1] : "carbon.super";
+                });
+
+        mockedIdentityUtil.when(() -> IdentityUtil.getInitiatorId(anyString(), anyString()))
+                .thenReturn("initiator-id-test");
+
+        mockedLoggerUtils.when(() -> LoggerUtils.getMaskedContent(anyString())).thenReturn("masked-content");
+    }
+
+    @AfterClass
+    public static void tearDownClass() {
+        if (mockedCarbonContext != null) {
+            mockedCarbonContext.close();
+        }
+        if (mockedUserCoreUtil != null) {
+            mockedUserCoreUtil.close();
+        }
+        if (mockedMultitenantUtils != null) {
+            mockedMultitenantUtils.close();
+        }
+        if (mockedIdentityUtil != null) {
+            mockedIdentityUtil.close();
+        }
+        if (mockedLoggerUtils != null) {
+            mockedLoggerUtils.close();
+        }
+    }
 
     @BeforeTest
     void setUp() {
@@ -549,16 +630,13 @@ public class DeviceHandlerServiceImplTest {
     public void testGetRegistrationDiscoveryData() throws PushDeviceHandlerException {
 
         try (
-                MockedStatic<MultitenantUtils> mockedMultiTenantUtils =
-                        Mockito.mockStatic(MultitenantUtils.class);
                 MockedStatic<OrganizationManagementUtil> mockedOrganizationManagementUtil =
                         Mockito.mockStatic(OrganizationManagementUtil.class);
-                MockedStatic<IdentityUtil> mockedIdentityUtil = Mockito.mockStatic(IdentityUtil.class);
         ) {
-            mockedMultiTenantUtils.when(
+            mockedMultitenantUtils.when(
                     () -> MultitenantUtils.getTenantAwareUsername(anyString())).thenReturn("testUser");
-            mockedOrganizationManagementUtil.when
-                    (() -> OrganizationManagementUtil.isOrganization(anyString())).thenReturn(false);
+            mockedOrganizationManagementUtil.when(
+                    () -> OrganizationManagementUtil.isOrganization(anyString())).thenReturn(false);
             mockedIdentityUtil.when(
                     () -> IdentityUtil.getServerURL(null, false, false)).thenReturn("https://localhost:9443");
 
@@ -574,14 +652,12 @@ public class DeviceHandlerServiceImplTest {
             throws PushDeviceHandlerException, OrganizationManagementException {
 
         try (
-                MockedStatic<MultitenantUtils> mockedMultiTenantUtils = Mockito.mockStatic(MultitenantUtils.class);
                 MockedStatic<OrganizationManagementUtil> mockedOrganizationManagementUtil =
                         Mockito.mockStatic(OrganizationManagementUtil.class);
-                MockedStatic<IdentityUtil> mockedIdentityUtil = Mockito.mockStatic(IdentityUtil.class);
                 MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
                         Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
         ) {
-            mockedMultiTenantUtils.when(
+            mockedMultitenantUtils.when(
                     () -> MultitenantUtils.getTenantAwareUsername(anyString())).thenReturn("testUser");
             mockedOrganizationManagementUtil.when(
                     () -> OrganizationManagementUtil.isOrganization(anyString())).thenReturn(true);
