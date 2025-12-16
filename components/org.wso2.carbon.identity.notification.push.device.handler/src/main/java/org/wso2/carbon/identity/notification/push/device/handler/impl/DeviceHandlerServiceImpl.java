@@ -21,6 +21,7 @@ package org.wso2.carbon.identity.notification.push.device.handler.impl;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.osgi.annotation.bundle.Capability;
 import org.wso2.carbon.identity.base.IdentityException;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
@@ -84,6 +85,13 @@ import static org.wso2.carbon.identity.notification.sender.tenant.config.Notific
 /**
  * Device handler service implementation.
  */
+@Capability(
+        namespace = "osgi.service",
+        attribute = {
+                "objectClass=org.wso2.carbon.identity.notification.push.device.handler.DeviceHandlerService",
+                "service.scope=singleton"
+        }
+)
 public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
     private static final Log LOG = LogFactory.getLog(DeviceHandlerServiceImpl.class);
