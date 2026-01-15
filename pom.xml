@@ -125,6 +125,16 @@
                 <version>${carbon.identity.framework.version}</version>
             </dependency>
             <dependency>
+                <groupId>org.json.wso2</groupId>
+                <artifactId>json</artifactId>
+                <version>${json.wso2.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wso2.carbon.identity.framework</groupId>
+                <artifactId>org.wso2.carbon.identity.central.log.mgt</artifactId>
+                <version>${carbon.identity.framework.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.wso2.orbit.com.google.firebase</groupId>
                 <artifactId>firebase-admin</artifactId>
                 <version>${firebase-admin.version}</version>
@@ -366,6 +376,8 @@
         <httpcore5.osgi.version.range>[5.0.0,6.0.0)</httpcore5.osgi.version.range>
         <commons.logging.version>1.2</commons.logging.version>
         <org.apache.commons.logging.range>[1.2.0,2.0.0)</org.apache.commons.logging.range>
+        <json.wso2.version>3.0.0.wso2v4</json.wso2.version>
+        <json.wso2.version.range>[3.0.0.wso2v1, 4.0.0)</json.wso2.version.range>
 
         <firebase-admin.version>9.4.2.wso2v2</firebase-admin.version>
         <api-common.version>2.42.0.wso2v1</api-common.version>
