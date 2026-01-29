@@ -208,7 +208,7 @@
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
-                <artifactId>mockito-inline</artifactId>
+                <artifactId>mockito-core</artifactId>
                 <version>${mockito.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -389,11 +389,11 @@
 
         <maven.checkstyleplugin.version>3.1.0</maven.checkstyleplugin.version>
         <findsecbugs-plugin.version>1.10.1</findsecbugs-plugin.version>
-        <spotbugs-maven-plugin.version>4.7.2.1</spotbugs-maven-plugin.version>
+        <spotbugs-maven-plugin.version>4.9.8.2</spotbugs-maven-plugin.version>
         <maven.bundle.plugin.version>5.1.9</maven.bundle.plugin.version>
 
         <testng.version>7.10.1</testng.version>
-        <mockito.version>3.8.0</mockito.version>
+        <mockito.version>5.3.1</mockito.version>
         <jacoco.version>0.8.12</jacoco.version>
         <com.fasterxml.jackson.databind.version>2.13.3</com.fasterxml.jackson.databind.version>
         <maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
@@ -403,6 +403,10 @@
         <osgi.service.component.imp.pkg.version.range>[1.2.0, 2.0.0)</osgi.service.component.imp.pkg.version.range>
         <imp.pkg.version.javax.servlet>[2.6.0, 3.0.0)</imp.pkg.version.javax.servlet>
         <equinox.osgi.services.version>3.12.0</equinox.osgi.services.version>
+
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
 </project>
