@@ -37,6 +37,10 @@ public class PushDeviceHandlerDataHolder {
     private OrganizationManager organizationManager;
     private NotificationSenderManagementService notificationSenderManagementService;
 
+    private PushDeviceHandlerDataHolder() {
+        
+    }
+    
     public static PushDeviceHandlerDataHolder getInstance() {
 
         return instance;
