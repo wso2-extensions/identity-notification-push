@@ -65,6 +65,7 @@ import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -547,6 +548,16 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      */
     private String getPushProviderName(RegistrationRequestProviderData providerData)
             throws PushDeviceHandlerServerException, PushDeviceHandlerClientException {
+
+        /*
+            1) If the provider data is provided in the registration request, we will use that to register the device.
+            2) If the provider data is not provided, we will use the default push provider to register the device.
+            3) If the default push provider is not configured,
+               we will check if there is only one provider available and set that as the default provider.
+            4) If all the above conditions are not met, we will throw an exception indicating that the
+               provider is not specified.
+        */
+
         if (providerData != null && StringUtils.isNotBlank(providerData.getName())) {
             return providerData.getName();
         }
@@ -562,8 +573,31 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
                 return configs.get(DEFAULT_PUSH_PROVIDER);
             } else {
                 if (LOG.isDebugEnabled()) {
-                    LOG.debug("Default push notification provider is not configured.");
+                    LOG.debug("Default push notification provider is not configured. " +
+                            "Checking if there is only one push sender available.");
                 }
+
+                List<PushSenderDTO> pushSenders = PushDeviceHandlerDataHolder.getInstance()
+                        .getNotificationSenderManagementService().getPushSenders(true);
+                if (pushSenders != null && pushSenders.size() == 1) {
+                    String pushProvider = pushSenders.get(0).getProvider();
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(String.format("Only one push sender is available: %s. " +
+                                        "Marking it as the default push provider.", pushProvider));
+                    }
+                    Map<String, String> defaultProviderConfig = new HashMap<>();
+                    defaultProviderConfig.put(DEFAULT_PUSH_PROVIDER, pushProvider);
+                    PushDeviceHandlerDataHolder.getInstance()
+                            .getNotificationSenderManagementService()
+                            .setNotiSenderConfigurations(PUSH_PUBLISHER_TYPE, defaultProviderConfig);
+                    return pushProvider;
+                }
+
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Zero or more than one push senders are available. " +
+                            "Cannot determine a push provider as default fallback.");
+                }
+
                 throw new PushDeviceHandlerClientException(ERROR_CODE_PROVIDER_NOT_SPECIFIED.getCode(),
                         ERROR_CODE_PROVIDER_NOT_SPECIFIED.getMessage());
             }
@@ -611,6 +645,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      */
     private PushDeviceData setProviderMetadataToPushDeviceData(
             PushDeviceData pushDeviceData, RegistrationRequestProviderData providerData) {
+
         if (providerData != null) {
             pushDeviceData.setProviderMetadata(providerData.getMetadata());
         }
