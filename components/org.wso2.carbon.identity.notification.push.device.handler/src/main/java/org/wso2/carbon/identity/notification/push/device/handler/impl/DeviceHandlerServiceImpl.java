@@ -110,6 +110,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * Constructor of DeviceHandlerServiceImpl.
      *
      * @param deviceRegistrationContextManager Device registration context manager.
+     * @param deviceDAO                        Device DAO.
      */
     public DeviceHandlerServiceImpl(DeviceRegistrationContextManager deviceRegistrationContextManager,
                                     DeviceDAO deviceDAO) {
@@ -323,6 +324,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      *
      * @param registrationRequest Registration request.
      * @param context             Device registration context.
+     * @throws PushDeviceHandlerClientException Push Device Handler Client Exception.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
     private void handleSignatureVerification(RegistrationRequest registrationRequest, DeviceRegistrationContext context)
@@ -433,6 +435,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * Handle the device registration for the push notification providers.
      *
      * @param device Device.
+     * @param providerData Provider-specific metadata from the registration request.
+     * @throws PushDeviceHandlerClientException Push Device Handler Client Exception.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
     private void handleDeviceRegistrationForProvider(Device device, RegistrationRequestProviderData providerData)
@@ -459,6 +463,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * Handle the device deletion for the push notification providers.
      *
      * @param device Device.
+     * @throws PushDeviceHandlerClientException Push Device Handler Client Exception.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
     private void handleDeleteDeviceForProvider(Device device)
@@ -485,6 +490,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * @param device Device.
      * @param path   Path.
      * @param value  Value.
+     * @throws PushDeviceHandlerClientException Push Device Handler Client Exception.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
     private void handleEditDevice(Device device, String path, String value)
@@ -510,6 +516,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * Handle the device update for the push notification providers.
      *
      * @param device Device.
+     * @throws PushDeviceHandlerClientException Push Device Handler Client Exception.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
     private void handleUpdateDeviceForProvider(Device device)
@@ -544,7 +551,12 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
     }
 
     /**
-     * Get push provider name.
+     * Get the push provider name to use for device registration.
+     *
+     * @param providerData Provider data from the registration request, or {@code null} if not specified.
+     * @return Name of the push provider to use.
+     * @throws PushDeviceHandlerClientException Push Device Handler Client Exception.
+     * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
     private String getPushProviderName(RegistrationRequestProviderData providerData)
             throws PushDeviceHandlerServerException, PushDeviceHandlerClientException {
@@ -642,6 +654,10 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
     /**
      * Set provider metadata to push device data.
+     *
+     * @param pushDeviceData Push device data to update.
+     * @param providerData   Provider data containing metadata, or {@code null} if not provided.
+     * @return Updated push device data.
      */
     private PushDeviceData setProviderMetadataToPushDeviceData(
             PushDeviceData pushDeviceData, RegistrationRequestProviderData providerData) {
