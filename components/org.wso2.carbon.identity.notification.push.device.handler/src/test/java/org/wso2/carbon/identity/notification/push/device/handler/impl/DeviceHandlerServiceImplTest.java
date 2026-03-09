@@ -1104,7 +1104,7 @@ public class DeviceHandlerServiceImplTest {
                     .thenReturn(notificationSenderManagementService);
             Map<String, String> configs = new HashMap<>();
             configs.put(DEFAULT_PUSH_PROVIDER, "FCM");
-            when(notificationSenderManagementService.getNotiSenderConfigurations(anyString(), anyBoolean()))
+            when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenReturn(configs);
 
             PushSenderDTO pushSenderDTO = new PushSenderDTO();
@@ -1437,7 +1437,7 @@ public class DeviceHandlerServiceImplTest {
             // Mock default provider configuration
             Map<String, String> configs = new HashMap<>();
             configs.put(DEFAULT_PUSH_PROVIDER, "FCM");
-            when(notificationSenderManagementService.getNotiSenderConfigurations(anyString(), anyBoolean()))
+            when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenReturn(configs);
 
             PushSenderDTO pushSenderDTO = new PushSenderDTO();
@@ -1463,7 +1463,7 @@ public class DeviceHandlerServiceImplTest {
             Assert.assertEquals(registeredDevice.getProvider(), "FCM");
             Assert.assertTrue(deviceRegistrationContext.isRegistered());
             verify(notificationSenderManagementService, times(1))
-                    .getNotiSenderConfigurations(anyString(), anyBoolean());
+                    .getNotificationSenderConfigurations(anyString(), anyBoolean());
         }
     }
 
@@ -1510,7 +1510,7 @@ public class DeviceHandlerServiceImplTest {
                     .thenReturn(notificationSenderManagementService);
 
             // Return null or empty config to simulate no default provider
-            when(notificationSenderManagementService.getNotiSenderConfigurations(anyString(), anyBoolean()))
+            when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenReturn(null);
 
             Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
@@ -1562,13 +1562,145 @@ public class DeviceHandlerServiceImplTest {
                     .thenReturn(notificationSenderManagementService);
 
             // Simulate exception during config retrieval
-            when(notificationSenderManagementService.getNotiSenderConfigurations(anyString(), anyBoolean()))
+            when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenThrow(new NotificationSenderManagementException(
                             NotificationSenderManagementConstants.ErrorMessage
                                     .ERROR_CODE_ERROR_GETTING_NOTIFICATION_SENDER,
                             "Config retrieval failed"));
 
             Assert.assertThrows(PushDeviceHandlerServerException.class, () -> {
+                deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
+            });
+        }
+    }
+
+    /**
+     * Test device registration falls back to default provider when provider data has a blank name.
+     * Covers the branch where providerData is non-null but providerData.getName() is blank.
+     */
+    @Test
+    public void testRegisterDeviceWithBlankProviderNameFallsBackToDefault()
+            throws PushDeviceHandlerException, UserStoreException, NotificationSenderManagementException,
+            PushProviderException {
+
+        RegistrationRequest registrationRequest = createRegistrationRequest();
+        registrationRequest.setProvider(new RegistrationRequestProviderData("", null));
+
+        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
+
+        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
+                .thenReturn(deviceRegistrationContext);
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+        ) {
+
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            UserRealm userRealm = mock(UserRealm.class);
+            mockedIdentityTenantUtil.when(
+                    () -> IdentityTenantUtil.getRealm(anyString(), anyString())).thenReturn(userRealm);
+            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
+            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
+            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
+
+            when(deviceDAO.getDeviceByUserId(anyString(), anyInt())).thenReturn(Optional.empty());
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+
+            NotificationSenderManagementService notificationSenderManagementService =
+                    mock(NotificationSenderManagementService.class);
+            when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
+                    .thenReturn(notificationSenderManagementService);
+
+            // Mock default provider configuration
+            Map<String, String> configs = new HashMap<>();
+            configs.put(DEFAULT_PUSH_PROVIDER, "FCM");
+            when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
+                    .thenReturn(configs);
+
+            PushSenderDTO pushSenderDTO = new PushSenderDTO();
+            pushSenderDTO.setName("FCM_PushPublisher");
+            pushSenderDTO.setProvider("FCM");
+            pushSenderDTO.setProviderId("fcm-provider-id");
+            List<PushSenderDTO> pushSenders = new ArrayList<>();
+            pushSenders.add(pushSenderDTO);
+            when(notificationSenderManagementService.getPushSenders(anyBoolean()))
+                    .thenReturn(pushSenders);
+
+            FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
+            when(pushDeviceHandlerDataHolder.getPushProvider(eq("FCM"))).thenReturn(fcmPushProvider);
+            when(fcmPushProvider.getName()).thenReturn("FCM");
+            doNothing().when(fcmPushProvider).registerDevice(any(), any());
+
+            doNothing().when(deviceDAO).registerDevice(any(), anyInt());
+
+            Device registeredDevice = deviceHandlerService
+                    .registerDevice(registrationRequest, "carbon.super");
+
+            Assert.assertNotNull(registeredDevice);
+            Assert.assertEquals(registeredDevice.getProvider(), "FCM");
+        }
+    }
+
+    /**
+     * Test device registration falls back to push sender check when config map exists but does not
+     * contain the DEFAULT_PUSH_PROVIDER key.
+     * Covers the branch where configs is non-null but containsKey returns false.
+     */
+    @Test
+    public void testRegisterDeviceWithConfigMissingDefaultKeyFallsBackToSenderCheck()
+            throws UserStoreException, PushDeviceHandlerException, NotificationSenderManagementException {
+
+        RegistrationRequest registrationRequest = createRegistrationRequest();
+        registrationRequest.setProvider(null);
+
+        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
+
+        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
+                .thenReturn(deviceRegistrationContext);
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+        ) {
+
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            UserRealm userRealm = mock(UserRealm.class);
+            mockedIdentityTenantUtil.when(
+                    () -> IdentityTenantUtil.getRealm(anyString(), anyString())).thenReturn(userRealm);
+            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
+            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
+            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
+
+            when(deviceDAO.getDeviceByUserId(anyString(), anyInt())).thenReturn(Optional.empty());
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+
+            NotificationSenderManagementService notificationSenderManagementService =
+                    mock(NotificationSenderManagementService.class);
+            when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
+                    .thenReturn(notificationSenderManagementService);
+
+            // Return config map that exists but does NOT contain DEFAULT_PUSH_PROVIDER key
+            Map<String, String> configs = new HashMap<>();
+            configs.put("someOtherKey", "someValue");
+            when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
+                    .thenReturn(configs);
+
+            // Return empty list so it falls through to exception
+            when(notificationSenderManagementService.getPushSenders(anyBoolean()))
+                    .thenReturn(new ArrayList<>());
+
+            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
                 deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
             });
         }
@@ -1618,7 +1750,7 @@ public class DeviceHandlerServiceImplTest {
                     .thenReturn(notificationSenderManagementService);
 
             // Return null config to simulate no default provider configured
-            when(notificationSenderManagementService.getNotiSenderConfigurations(anyString(), anyBoolean()))
+            when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenReturn(null);
 
             // Mock single push sender available
@@ -1647,7 +1779,7 @@ public class DeviceHandlerServiceImplTest {
 
             // Verify the single sender was auto-set as default provider
             verify(notificationSenderManagementService, times(1))
-                    .setNotiSenderConfigurations(anyString(), any(Map.class));
+                    .setNotificationSenderConfigurations(anyString(), any(Map.class));
         }
     }
 
@@ -1694,7 +1826,7 @@ public class DeviceHandlerServiceImplTest {
                     .thenReturn(notificationSenderManagementService);
 
             // Return null config to simulate no default provider configured
-            when(notificationSenderManagementService.getNotiSenderConfigurations(anyString(), anyBoolean()))
+            when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenReturn(null);
 
             // Return empty list of push senders
@@ -1750,7 +1882,7 @@ public class DeviceHandlerServiceImplTest {
                     .thenReturn(notificationSenderManagementService);
 
             // Return null config to simulate no default provider configured
-            when(notificationSenderManagementService.getNotiSenderConfigurations(anyString(), anyBoolean()))
+            when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenReturn(null);
 
             // Return multiple push senders

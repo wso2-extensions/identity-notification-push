@@ -568,7 +568,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         try {
             Map<String, String> configs = PushDeviceHandlerDataHolder.getInstance()
                     .getNotificationSenderManagementService()
-                    .getNotiSenderConfigurations(PUSH_PUBLISHER_TYPE, true);
+                    .getNotificationSenderConfigurations(PUSH_PUBLISHER_TYPE, true);
             if (configs != null && configs.containsKey(DEFAULT_PUSH_PROVIDER)) {
                 return configs.get(DEFAULT_PUSH_PROVIDER);
             } else {
@@ -589,7 +589,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
                     defaultProviderConfig.put(DEFAULT_PUSH_PROVIDER, pushProvider);
                     PushDeviceHandlerDataHolder.getInstance()
                             .getNotificationSenderManagementService()
-                            .setNotiSenderConfigurations(PUSH_PUBLISHER_TYPE, defaultProviderConfig);
+                            .setNotificationSenderConfigurations(PUSH_PUBLISHER_TYPE, defaultProviderConfig);
                     return pushProvider;
                 }
 
