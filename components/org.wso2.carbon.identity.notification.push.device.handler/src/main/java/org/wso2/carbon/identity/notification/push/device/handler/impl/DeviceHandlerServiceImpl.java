@@ -581,7 +581,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             Map<String, String> configs = PushDeviceHandlerDataHolder.getInstance()
                     .getNotificationSenderManagementService()
                     .getNotificationSenderConfigurations(PUSH_PUBLISHER_TYPE, true);
-            if (configs != null && configs.containsKey(DEFAULT_PUSH_PROVIDER)) {
+            if (configs.containsKey(DEFAULT_PUSH_PROVIDER)) {
                 return configs.get(DEFAULT_PUSH_PROVIDER);
             } else {
                 if (LOG.isDebugEnabled()) {
@@ -591,7 +591,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
                 List<PushSenderDTO> pushSenders = PushDeviceHandlerDataHolder.getInstance()
                         .getNotificationSenderManagementService().getPushSenders(true);
-                if (pushSenders != null && pushSenders.size() == 1) {
+                if (pushSenders.size() == 1) {
                     String pushProvider = pushSenders.get(0).getProvider();
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(String.format("Only one push sender is available: %s. " +
@@ -606,9 +606,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
                         ERROR_CODE_PROVIDER_NOT_SPECIFIED.getMessage());
             }
         } catch (NotificationSenderManagementException e) {
-            if (LOG.isDebugEnabled()) {
-                LOG.debug("Error occurred while retrieving the default push notification provider", e);
-            }
+
+            LOG.debug("Error occurred while retrieving the default push notification provider", e);
             throw new PushDeviceHandlerServerException(
                     "Error occurred while retrieving the default push notification provider.", e);
          }
