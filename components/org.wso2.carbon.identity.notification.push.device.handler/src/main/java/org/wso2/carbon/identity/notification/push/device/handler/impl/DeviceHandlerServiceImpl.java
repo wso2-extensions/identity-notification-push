@@ -565,7 +565,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             1) If the provider data is provided in the registration request, we will use that to register the device.
             2) If the provider data is not provided, we will use the default push provider to register the device.
             3) If the default push provider is not configured,
-               we will check if there is only one provider available and set that as the default provider.
+               we will check if there is only one provider available and use it as the provider.
             4) If all the above conditions are not met, we will throw an exception indicating that the
                provider is not specified.
         */
@@ -595,20 +595,12 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
                     String pushProvider = pushSenders.get(0).getProvider();
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(String.format("Only one push sender is available: %s. " +
-                                        "Marking it as the default push provider.", pushProvider));
+                                        "Using it as the push provider.", pushProvider));
                     }
-                    Map<String, String> defaultProviderConfig = new HashMap<>();
-                    defaultProviderConfig.put(DEFAULT_PUSH_PROVIDER, pushProvider);
-                    PushDeviceHandlerDataHolder.getInstance()
-                            .getNotificationSenderManagementService()
-                            .setNotificationSenderConfigurations(PUSH_PUBLISHER_TYPE, defaultProviderConfig);
                     return pushProvider;
                 }
 
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Zero or more than one push senders are available. " +
-                            "Cannot determine a push provider as default fallback.");
-                }
+                LOG.debug("Cannot determine a push provider as default fallback.");
 
                 throw new PushDeviceHandlerClientException(ERROR_CODE_PROVIDER_NOT_SPECIFIED.getCode(),
                         ERROR_CODE_PROVIDER_NOT_SPECIFIED.getMessage());
