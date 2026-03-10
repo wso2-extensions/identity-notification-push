@@ -99,10 +99,12 @@ public class RegistrationRequest implements Serializable {
     }
 
     public RegistrationRequestProviderData getProvider() {
+
         return provider;
     }
 
     public void setProvider(RegistrationRequestProviderData provider) {
+
         this.provider = provider;
     }
 }
