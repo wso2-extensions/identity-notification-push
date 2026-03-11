@@ -60,14 +60,17 @@ public class PushDeviceData {
     }
 
     public Map<String, String> getProviderMetadata() {
+
         return providerMetadata;
     }
 
     public void setDeviceHandle(String deviceHandle) {
+
         this.deviceHandle = deviceHandle;
     }
 
     public void setProviderMetadata(Map<String, String> providerMetadata) {
+
         this.providerMetadata = providerMetadata;
     }
 }
