@@ -682,12 +682,12 @@ public class DeviceHandlerServiceImplTest {
                     mock(NotificationSenderManagementService.class);
             when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
                     .thenReturn(notificationSenderManagementService);
-            
+
             // Mock PushProvider to return successfully
             FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
             when(pushDeviceHandlerDataHolder.getPushProvider(eq("FCM"))).thenReturn(fcmPushProvider);
             when(fcmPushProvider.getName()).thenReturn("FCM");
-            
+
             // Simulate NotificationSenderManagementService failing
             when(notificationSenderManagementService.getPushSenders(anyBoolean()))
                     .thenThrow(new NotificationSenderManagementException(
@@ -893,12 +893,12 @@ public class DeviceHandlerServiceImplTest {
                     mock(NotificationSenderManagementService.class);
             when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
                     .thenReturn(notificationSenderManagementService);
-            
+
             // Mock PushProvider to return successfully
             FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
             when(pushDeviceHandlerDataHolder.getPushProvider(eq("FCM"))).thenReturn(fcmPushProvider);
             when(fcmPushProvider.getName()).thenReturn("FCM");
-            
+
             // Simulate NotificationSenderManagementService failing
             when(notificationSenderManagementService.getPushSenders(anyBoolean()))
                     .thenThrow(new NotificationSenderManagementException(
@@ -1380,7 +1380,7 @@ public class DeviceHandlerServiceImplTest {
             amazonSNSjPushSender.setProviderId("amazon-sns-provider-id");
             amazonSNSjPushSender.setProperties(new HashMap<>());
             pushSenders.add(amazonSNSjPushSender);
-            
+
             when(notificationSenderManagementService.getPushSenders(anyBoolean()))
                     .thenReturn(pushSenders);
 
@@ -1433,7 +1433,7 @@ public class DeviceHandlerServiceImplTest {
                     mock(NotificationSenderManagementService.class);
             when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
                     .thenReturn(notificationSenderManagementService);
-            
+
             // Mock default provider configuration
             Map<String, String> configs = new HashMap<>();
             configs.put(DEFAULT_PUSH_PROVIDER, "FCM");
