@@ -130,9 +130,9 @@ public class PushDeviceHandlerConstants {
                 "PDH-15012",
                 "Invalid scenario for editing the device for the device ID: %s."
         ),
-        ERROR_CODE_PROVIDER_NOT_SPECIFIED(
+        ERROR_CODE_FAILED_TO_RESOLVE_PUSH_PROVIDER(
                 "PDH-15013",
-                "Provider is required but not specified in the registration request."
+                "Failed to resolve the correct push provider for the request."
         );
 
         private final String code;

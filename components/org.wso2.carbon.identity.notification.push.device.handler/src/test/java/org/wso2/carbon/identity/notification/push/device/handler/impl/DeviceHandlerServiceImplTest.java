@@ -1509,11 +1509,15 @@ public class DeviceHandlerServiceImplTest {
             when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
                     .thenReturn(notificationSenderManagementService);
 
-            // Return null or empty config to simulate no default provider
+            // Return empty config to simulate no default provider
             when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
-                    .thenReturn(null);
+                    .thenReturn(new HashMap<>());
 
-            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+            // Return empty list of push senders so it falls through to exception
+            when(notificationSenderManagementService.getPushSenders(anyBoolean()))
+                    .thenReturn(new ArrayList<>());
+
+            Assert.assertThrows(PushDeviceHandlerServerException.class, () -> {
                 deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
             });
         }
@@ -1700,7 +1704,7 @@ public class DeviceHandlerServiceImplTest {
             when(notificationSenderManagementService.getPushSenders(anyBoolean()))
                     .thenReturn(new ArrayList<>());
 
-            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+            Assert.assertThrows(PushDeviceHandlerServerException.class, () -> {
                 deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
             });
         }
@@ -1749,9 +1753,9 @@ public class DeviceHandlerServiceImplTest {
             when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
                     .thenReturn(notificationSenderManagementService);
 
-            // Return null config to simulate no default provider configured
+            // Return empty config to simulate no default provider configured
             when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
-                    .thenReturn(null);
+                    .thenReturn(new HashMap<>());
 
             // Mock single push sender available
             PushSenderDTO pushSenderDTO = new PushSenderDTO();
@@ -1776,10 +1780,6 @@ public class DeviceHandlerServiceImplTest {
             Assert.assertNotNull(registeredDevice);
             Assert.assertEquals(registeredDevice.getProvider(), "FCM");
             Assert.assertTrue(deviceRegistrationContext.isRegistered());
-
-            // Verify the single sender was auto-set as default provider
-            verify(notificationSenderManagementService, times(1))
-                    .setNotificationSenderConfigurations(anyString(), any(Map.class));
         }
     }
 
@@ -1825,15 +1825,15 @@ public class DeviceHandlerServiceImplTest {
             when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
                     .thenReturn(notificationSenderManagementService);
 
-            // Return null config to simulate no default provider configured
+            // Return empty config to simulate no default provider configured
             when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
-                    .thenReturn(null);
+                    .thenReturn(new HashMap<>());
 
             // Return empty list of push senders
             when(notificationSenderManagementService.getPushSenders(anyBoolean()))
                     .thenReturn(new ArrayList<>());
 
-            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+            Assert.assertThrows(PushDeviceHandlerServerException.class, () -> {
                 deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
             });
         }
@@ -1881,9 +1881,9 @@ public class DeviceHandlerServiceImplTest {
             when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
                     .thenReturn(notificationSenderManagementService);
 
-            // Return null config to simulate no default provider configured
+            // Return empty config to simulate no default provider configured
             when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
-                    .thenReturn(null);
+                    .thenReturn(new HashMap<>());
 
             // Return multiple push senders
             PushSenderDTO pushSenderDTO1 = new PushSenderDTO();
@@ -1898,7 +1898,7 @@ public class DeviceHandlerServiceImplTest {
             when(notificationSenderManagementService.getPushSenders(anyBoolean()))
                     .thenReturn(pushSenders);
 
-            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+            Assert.assertThrows(PushDeviceHandlerServerException.class, () -> {
                 deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
             });
         }

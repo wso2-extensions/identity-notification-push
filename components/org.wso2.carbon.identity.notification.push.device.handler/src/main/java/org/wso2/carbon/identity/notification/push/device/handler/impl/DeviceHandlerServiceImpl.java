@@ -65,7 +65,6 @@ import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -77,9 +76,9 @@ import static org.wso2.carbon.identity.notification.push.device.handler.constant
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_REGISTRATION_FAILED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_FAILED_TO_GET_USER_ID;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_FAILED_TO_RESOLVE_PUSH_PROVIDER;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_INVALID_EDIT_DEVICE_SCENARIO;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_INVALID_SIGNATURE;
-import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_PROVIDER_NOT_SPECIFIED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_PUBLIC_KEY_NOT_FOUND;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_REGISTRATION_CONTEXT_ALREADY_USED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_REGISTRATION_CONTEXT_NOT_FOUND;
@@ -602,8 +601,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
                 LOG.debug("Cannot determine a push provider as default fallback.");
 
-                throw new PushDeviceHandlerClientException(ERROR_CODE_PROVIDER_NOT_SPECIFIED.getCode(),
-                        ERROR_CODE_PROVIDER_NOT_SPECIFIED.getMessage());
+                throw new PushDeviceHandlerServerException(ERROR_CODE_FAILED_TO_RESOLVE_PUSH_PROVIDER.getCode(),
+                        ERROR_CODE_FAILED_TO_RESOLVE_PUSH_PROVIDER.getMessage());
             }
         } catch (NotificationSenderManagementException e) {
 
