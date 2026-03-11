@@ -32,6 +32,7 @@ public class RegistrationRequest implements Serializable {
     private String deviceToken;
     private String publicKey;
     private String signature;
+    private RegistrationRequestProviderData provider;
 
     public RegistrationRequest() {
 
@@ -95,5 +96,13 @@ public class RegistrationRequest implements Serializable {
     public void setSignature(String signature) {
 
         this.signature = signature;
+    }
+
+    public RegistrationRequestProviderData getProvider() {
+        return provider;
+    }
+
+    public void setProvider(RegistrationRequestProviderData provider) {
+        this.provider = provider;
     }
 }

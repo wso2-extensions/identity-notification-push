@@ -30,6 +30,7 @@ public class PushNotificationData {
     private final String notificationBody;
     private final String deviceId;
     private final String deviceToken;
+    private final String deviceHandle;
     private final String username;
     private final String tenantDomain;
     private final String organizationId;
@@ -58,6 +59,7 @@ public class PushNotificationData {
         this.pushId = builder.pushId;
         this.deviceToken = builder.deviceToken;
         this.deviceId = builder.deviceId;
+        this.deviceHandle = builder.deviceHandle;
         this.challenge = builder.challenge;
         this.numberChallenge = builder.numberChallenge;
         this.ipAddress = builder.ipAddress;
@@ -123,6 +125,11 @@ public class PushNotificationData {
     public String getDeviceId() {
 
         return deviceId;
+    }
+
+    public String getDeviceHandle() {
+
+        return deviceHandle;
     }
 
     public String getChallenge() {
@@ -201,6 +208,7 @@ public class PushNotificationData {
         private String notificationBody;
         private String deviceToken;
         private String deviceId;
+        private String deviceHandle;
         private String username;
         private String tenantDomain;
         private String organizationId;
@@ -284,6 +292,12 @@ public class PushNotificationData {
         public Builder setDeviceId(String deviceId) {
 
             this.deviceId = deviceId;
+            return this;
+        }
+
+        public Builder setDeviceHandle(String deviceHandle) {
+
+            this.deviceHandle = deviceHandle;
             return this;
         }
 

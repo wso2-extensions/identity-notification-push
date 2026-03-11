@@ -52,7 +52,17 @@ public class PushProviderConstants {
         ERROR_WHILE_RETRIEVING_SECRETS_OF_PUSH_PROVIDER("65006",
                 "Error occurred while retrieving the secrets of the push provider."),
         ERROR_WHILE_DELETING_SECRETS_OF_PUSH_PROVIDER("65007",
-                "Error occurred while deleting the secrets of the push provider."),;
+                "Error occurred while deleting the secrets of the push provider."),
+        ERROR_PUSH_DEVICE_REGISTRATION_FAILED("65008",
+                "Failed to register the device with the push provider due to server side issue."),
+        ERROR_PUSH_DEVICE_UNREGISTRATION_FAILED("65009",
+                "Failed to unregister the device from the push provider due to server side issue."),
+        ERROR_PUSH_DEVICE_UPDATE_FAILED("65010",
+                "Failed to update the device information with the push provider due to server side issue."),
+        ERROR_REQUIRED_METADATA_MISSING("65011",
+                "Required provider metadata is missing or invalid: "),
+        ERROR_DEVICE_ALREADY_REGISTERED("65012",
+                "Device is already registered to the push provider.");
 
         private final String code;
         private final String message;

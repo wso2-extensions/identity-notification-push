@@ -52,7 +52,7 @@ public class DeviceRegistrationContextManagerImpl implements DeviceRegistrationC
             return cacheEntry.getDeviceRegistrationContext();
         } else {
             cacheEntry = getFromSessionStore(key);
-            if (IdentityCacheUtil.isCacheEntryExpired(cacheEntry)) {
+            if (!IdentityCacheUtil.isCacheEntryExpired(cacheEntry)) {
                 return cacheEntry.getDeviceRegistrationContext();
             }
         }

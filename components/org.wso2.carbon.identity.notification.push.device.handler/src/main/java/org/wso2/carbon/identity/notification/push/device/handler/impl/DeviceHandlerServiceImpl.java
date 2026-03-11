@@ -38,8 +38,10 @@ import org.wso2.carbon.identity.notification.push.device.handler.model.Device;
 import org.wso2.carbon.identity.notification.push.device.handler.model.DeviceRegistrationContext;
 import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationDiscoveryData;
 import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationRequest;
+import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationRequestProviderData;
 import org.wso2.carbon.identity.notification.push.device.handler.utils.DeviceHandlerAuditLogger;
 import org.wso2.carbon.identity.notification.push.provider.PushProvider;
+import org.wso2.carbon.identity.notification.push.provider.exception.PushProviderClientException;
 import org.wso2.carbon.identity.notification.push.provider.exception.PushProviderException;
 import org.wso2.carbon.identity.notification.push.provider.model.PushDeviceData;
 import org.wso2.carbon.identity.notification.push.provider.model.PushSenderData;
@@ -408,7 +410,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         );
 
         // Register the device with the push notification providers.
-        handleDeviceRegistrationForProvider(device);
+        handleDeviceRegistrationForProvider(device, registrationRequest.getProvider());
 
         try {
             deviceDAO.registerDevice(device, tenantId);
@@ -428,20 +430,26 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * @param device Device.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
-    private void handleDeviceRegistrationForProvider(Device device) throws PushDeviceHandlerServerException {
+    private void handleDeviceRegistrationForProvider(Device device, RegistrationRequestProviderData providerData)
+            throws PushDeviceHandlerClientException, PushDeviceHandlerServerException {
 
         try {
             PushDeviceData pushDeviceData = buildPushDeviceDataFromDevice(device);
+            pushDeviceData = setProviderMetadataToPushDeviceData(pushDeviceData, providerData);
             PushSenderDTO pushSender = PushDeviceHandlerDataHolder.getInstance()
                     .getNotificationSenderManagementService().getPushSender(DEFAULT_PUSH_PUBLISHER, true);
             String pushProviderName = pushSender.getProvider();
             PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance().getPushProvider(pushProviderName);
             pushProvider.registerDevice(pushDeviceData, buildPushSenderData(pushSender));
             device.setProvider(pushProviderName);
+            device.setDeviceHandle(pushDeviceData.getDeviceHandle());
         } catch (NotificationSenderManagementException e) {
             throw new PushDeviceHandlerServerException(
                     "Error occurred while retrieving the push notification senders.", e);
         } catch (PushProviderException e) {
+            if (e instanceof PushProviderClientException) {
+                throw new PushDeviceHandlerClientException(e.getErrorCode(), e.getMessage(), e.getCause());
+            }
             throw new PushDeviceHandlerServerException("Error occurred while registering the device.", e);
         }
     }
@@ -452,7 +460,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * @param device Device.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
-    private void handleDeleteDeviceForProvider(Device device) throws PushDeviceHandlerServerException {
+    private void handleDeleteDeviceForProvider(Device device)
+            throws PushDeviceHandlerServerException, PushDeviceHandlerClientException {
 
         String deviceProviderType = device.getProvider();
         PushDeviceData pushDeviceData = buildPushDeviceDataFromDevice(device);
@@ -468,6 +477,9 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             throw new PushDeviceHandlerServerException(
                     "Error occurred while retrieving the push notification senders.", e);
         } catch (PushProviderException e) {
+            if (e instanceof PushProviderClientException) {
+                throw new PushDeviceHandlerClientException(e.getErrorCode(), e.getMessage(), e.getCause());
+            }
             throw new PushDeviceHandlerServerException("Error occurred while unregistering the device.", e);
         }
     }
@@ -480,7 +492,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * @param value  Value.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
-    private void handleEditDevice(Device device, String path, String value) throws PushDeviceHandlerServerException {
+    private void handleEditDevice(Device device, String path, String value)
+            throws PushDeviceHandlerServerException, PushDeviceHandlerClientException {
 
         switch (path) {
             case "/device-name":
@@ -504,7 +517,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
      * @param device Device.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
-    private void handleUpdateDeviceForProvider(Device device) throws PushDeviceHandlerServerException {
+    private void handleUpdateDeviceForProvider(Device device)
+            throws PushDeviceHandlerServerException, PushDeviceHandlerClientException {
 
         String deviceProviderType = device.getProvider();
         PushDeviceData pushDeviceData = buildPushDeviceDataFromDevice(device);
@@ -515,11 +529,15 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
                 PushProvider pushProvider = PushDeviceHandlerDataHolder.getInstance()
                         .getPushProvider(deviceProviderType);
                 pushProvider.updateDevice(pushDeviceData, buildPushSenderData(pushSender));
+                device.setDeviceHandle(pushDeviceData.getDeviceHandle());
             }
         } catch (NotificationSenderManagementException e) {
             throw new PushDeviceHandlerServerException(
                     "Error occurred while retrieving the push notification senders.", e);
         } catch (PushProviderException e) {
+            if (e instanceof PushProviderClientException) {
+                throw new PushDeviceHandlerClientException(e.getErrorCode(), e.getMessage(), e.getCause());
+            }
             throw new PushDeviceHandlerServerException("Error occurred while updating the device.", e);
         }
     }
@@ -533,6 +551,17 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
     private PushDeviceData buildPushDeviceDataFromDevice(Device device) {
 
         return new PushDeviceData(device.getDeviceToken(), device.getDeviceHandle(), device.getProvider());
+    }
+
+    /**
+     * Set provider metadata to push device data.
+     */
+    private PushDeviceData setProviderMetadataToPushDeviceData(
+            PushDeviceData pushDeviceData, RegistrationRequestProviderData providerData) {
+        if (providerData != null) {
+            pushDeviceData.setProviderMetadata(providerData.getMetadata());
+        }
+        return pushDeviceData;
     }
 
     /**

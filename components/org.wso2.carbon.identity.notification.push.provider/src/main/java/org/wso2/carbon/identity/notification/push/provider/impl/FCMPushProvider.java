@@ -32,6 +32,7 @@ import org.apache.commons.logging.LogFactory;
 import org.wso2.carbon.identity.notification.push.provider.PushProvider;
 import org.wso2.carbon.identity.notification.push.provider.constant.PushProviderConstants;
 import org.wso2.carbon.identity.notification.push.provider.exception.PushProviderException;
+import org.wso2.carbon.identity.notification.push.provider.exception.PushProviderServerException;
 import org.wso2.carbon.identity.notification.push.provider.internal.ProviderDataHolder;
 import org.wso2.carbon.identity.notification.push.provider.model.PushDeviceData;
 import org.wso2.carbon.identity.notification.push.provider.model.PushNotificationData;
@@ -84,7 +85,8 @@ public class FCMPushProvider implements PushProvider {
             String serviceAccountString = processedProperties.get(FCM_SERVICE_ACCOUNT_SECRET);
             if (StringUtils.isBlank(serviceAccountString)) {
                 log.debug("Service account credentials are missing.");
-                throw new PushProviderException("Service account credentials are not provided for FCM push provider.");
+                throw new PushProviderServerException(
+                        "Service account credentials are not provided for FCM push provider.");
             }
 
             log.debug("Processing service account credentials for Firebase authentication.");
@@ -96,7 +98,8 @@ public class FCMPushProvider implements PushProvider {
                 log.debug("Successfully loaded Google credentials from service account.");
             } catch (IOException e) {
                 log.debug("Failed to read service account credentials.");
-                throw new PushProviderException("Error occurred while reading the service account credentials.", e);
+                throw new PushProviderServerException(
+                        "Error occurred while reading the service account credentials.", e);
             }
 
             FirebaseOptions options = FirebaseOptions.builder().setCredentials(credentials).build();
@@ -164,7 +167,7 @@ public class FCMPushProvider implements PushProvider {
             log.debug("Service account credentials are missing in properties.");
             PushProviderConstants.ErrorMessages error =
                     PushProviderConstants.ErrorMessages.ERROR_REQUIRED_PROPERTY_MISSING;
-            throw new PushProviderException(error.getCode(), error.getMessage() + FCM_SERVICE_ACCOUNT_SECRET);
+            throw new PushProviderServerException(error.getCode(), error.getMessage() + FCM_SERVICE_ACCOUNT_SECRET);
         }
         log.debug("Decoding Base64 encoded service account credentials.");
         String decodedServiceAccountString = new String(Base64.getDecoder().decode(serviceAccountString),
@@ -185,7 +188,7 @@ public class FCMPushProvider implements PushProvider {
             log.debug("Service account credentials are missing in properties.");
             PushProviderConstants.ErrorMessages error =
                     PushProviderConstants.ErrorMessages.ERROR_REQUIRED_PROPERTY_MISSING;
-            throw new PushProviderException(error.getCode(), error.getMessage() + FCM_SERVICE_ACCOUNT_SECRET);
+            throw new PushProviderServerException(error.getCode(), error.getMessage() + FCM_SERVICE_ACCOUNT_SECRET);
         }
         log.debug("Encoding service account credentials to Base64.");
         String encodedServiceAccountString = Base64.getEncoder()
@@ -202,7 +205,8 @@ public class FCMPushProvider implements PushProvider {
                     pushSenderData.getProviderId());
         }
         String appName = generateFirebaseAppName(tenantDomain, pushSenderData.getProviderId());
-        FirebaseApp.getApps().stream().filter(app -> app.getName().equals(appName)).forEach(FirebaseApp::delete);
+        FirebaseApp.getApps().stream()
+                .filter(app -> app.getName().equals(appName)).forEach(FirebaseApp::delete);
     }
 
     @Override
@@ -219,7 +223,7 @@ public class FCMPushProvider implements PushProvider {
                 log.debug("Service account credentials are missing in properties.");
                 PushProviderConstants.ErrorMessages error =
                         PushProviderConstants.ErrorMessages.ERROR_REQUIRED_PROPERTY_MISSING;
-                throw new PushProviderException(error.getCode(), error.getMessage() + FCM_SERVICE_ACCOUNT_SECRET);
+                throw new PushProviderServerException(error.getCode(), error.getMessage() + FCM_SERVICE_ACCOUNT_SECRET);
             }
             SecretManager secretManager = ProviderDataHolder.getInstance().getSecretManager();
             if (secretManager.isSecretExist(PUSH_PROVIDER_SECRET_TYPE, FCM_SECRET_REFERENCE)) {
@@ -241,7 +245,7 @@ public class FCMPushProvider implements PushProvider {
             log.debug("Error occurred while storing secrets.");
             PushProviderConstants.ErrorMessages error =
                     PushProviderConstants.ErrorMessages.ERROR_WHILE_STORING_SECRETS_OF_PUSH_PROVIDER;
-            throw new PushProviderException(error.getCode(), error.getMessage(), e);
+            throw new PushProviderServerException(error.getCode(), error.getMessage(), e);
         }
     }
 
@@ -259,7 +263,7 @@ public class FCMPushProvider implements PushProvider {
                 log.debug("Service account credentials are missing in properties.");
                 PushProviderConstants.ErrorMessages error =
                         PushProviderConstants.ErrorMessages.ERROR_REQUIRED_PROPERTY_MISSING;
-                throw new PushProviderException(error.getCode(), error.getMessage() + FCM_SERVICE_ACCOUNT_SECRET);
+                throw new PushProviderServerException(error.getCode(), error.getMessage() + FCM_SERVICE_ACCOUNT_SECRET);
             }
 
             SecretManager secretManager = ProviderDataHolder.getInstance().getSecretManager();
@@ -274,13 +278,13 @@ public class FCMPushProvider implements PushProvider {
                 log.debug("Secret does not exist in secret manager.");
                 PushProviderConstants.ErrorMessages error =
                         PushProviderConstants.ErrorMessages.ERROR_WHILE_RETRIEVING_SECRETS_OF_PUSH_PROVIDER;
-                throw new PushProviderException(error.getCode(), error.getMessage());
+                throw new PushProviderServerException(error.getCode(), error.getMessage());
             }
         } catch (SecretManagementException e) {
             log.debug("Error occurred while retrieving secrets.");
             PushProviderConstants.ErrorMessages error =
                     PushProviderConstants.ErrorMessages.ERROR_WHILE_RETRIEVING_SECRETS_OF_PUSH_PROVIDER;
-            throw new PushProviderException(error.getCode(), error.getMessage(), e);
+            throw new PushProviderServerException(error.getCode(), error.getMessage(), e);
         }
     }
 
@@ -303,7 +307,7 @@ public class FCMPushProvider implements PushProvider {
             log.debug("Error occurred while deleting secrets.");
             PushProviderConstants.ErrorMessages error =
                     PushProviderConstants.ErrorMessages.ERROR_WHILE_DELETING_SECRETS_OF_PUSH_PROVIDER;
-            throw new PushProviderException(error.getCode(), error.getMessage(), e);
+            throw new PushProviderServerException(error.getCode(), error.getMessage(), e);
         }
     }
 
@@ -325,7 +329,7 @@ public class FCMPushProvider implements PushProvider {
         } else {
             error = PushProviderConstants.ErrorMessages.ERROR_PUSH_NOTIFICATION_SENDING_FAILED;
         }
-        throw new PushProviderException(error.getCode(), error.getMessage(), e);
+        throw new PushProviderServerException(error.getCode(), error.getMessage(), e);
     }
 
     private String generateFirebaseAppName(String tenantDomain, String providerId) {
