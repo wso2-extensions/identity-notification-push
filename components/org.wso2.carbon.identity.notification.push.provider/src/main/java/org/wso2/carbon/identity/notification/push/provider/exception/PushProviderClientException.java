@@ -23,22 +23,25 @@ package org.wso2.carbon.identity.notification.push.provider.exception;
  */
 public class PushProviderClientException extends PushProviderException {
 
-
     private static final long serialVersionUID = 6697827894993189019L;
 
     public PushProviderClientException(String message) {
+
         super(message);
     }
 
     public PushProviderClientException(String errorCode, String message) {
+
         super(errorCode, message);
     }
 
     public PushProviderClientException(String message, Throwable cause) {
+
         super(message, cause);
     }
 
     public PushProviderClientException(String errorCode, String message, Throwable cause) {
+
         super(errorCode, message, cause);
     }
 }

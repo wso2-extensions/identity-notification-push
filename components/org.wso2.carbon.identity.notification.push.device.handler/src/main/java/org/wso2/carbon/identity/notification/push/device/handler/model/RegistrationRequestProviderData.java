@@ -22,7 +22,7 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
- * Registration request.
+ * Registration request Provider Data.
  */
 public class RegistrationRequestProviderData implements Serializable {
 
@@ -31,15 +31,18 @@ public class RegistrationRequestProviderData implements Serializable {
     private Map<String, String> metadata;
 
     public RegistrationRequestProviderData(String name, Map<String, String> metadata) {
+
         this.name = name;
         this.metadata = metadata;
     }
 
     public String getName() {
+
         return name;
     }
 
     public Map<String, String> getMetadata() {
+
         return metadata;
     }
 }

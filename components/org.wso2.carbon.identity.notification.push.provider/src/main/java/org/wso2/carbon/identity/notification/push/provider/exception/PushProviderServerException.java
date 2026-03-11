@@ -26,18 +26,22 @@ public class PushProviderServerException extends PushProviderException {
     private static final long serialVersionUID = -1726785030595959846L;
 
     public PushProviderServerException(String message) {
+
         super(message);
     }
 
     public PushProviderServerException(String errorCode, String message) {
+
         super(errorCode, message);
     }
 
     public PushProviderServerException(String message, Throwable cause) {
+
         super(message, cause);
     }
 
     public PushProviderServerException(String errorCode, String message, Throwable cause) {
+
         super(errorCode, message, cause);
     }
 }

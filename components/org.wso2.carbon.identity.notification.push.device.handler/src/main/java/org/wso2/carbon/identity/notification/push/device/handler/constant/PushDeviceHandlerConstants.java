@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -26,6 +26,7 @@ public class PushDeviceHandlerConstants {
     public static final String HASHING_ALGORITHM = "SHA256withRSA";
     public static final String SIGNATURE_ALGORITHM = "RSA";
     public static final String DEVICE_REGISTRATION_REQUEST_CACHE = "PushDeviceRegistrationRequestCache";
+    public static final String DEFAULT_PUSH_PROVIDER = "defaultPushProvider";
 
     /**
      * Private constructor to prevent initialization of the class.
@@ -128,6 +129,10 @@ public class PushDeviceHandlerConstants {
         ERROR_CODE_INVALID_EDIT_DEVICE_SCENARIO(
                 "PDH-15012",
                 "Invalid scenario for editing the device for the device ID: %s."
+        ),
+        ERROR_CODE_FAILED_TO_RESOLVE_PUSH_PROVIDER(
+                "PDH-15013",
+                "Failed to resolve the correct push provider for the request."
         );
 
         private final String code;
