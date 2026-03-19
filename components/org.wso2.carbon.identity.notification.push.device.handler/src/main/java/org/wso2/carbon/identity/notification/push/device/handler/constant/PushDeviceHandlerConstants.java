@@ -27,6 +27,9 @@ public class PushDeviceHandlerConstants {
     public static final String SIGNATURE_ALGORITHM = "RSA";
     public static final String DEVICE_REGISTRATION_REQUEST_CACHE = "PushDeviceRegistrationRequestCache";
     public static final String DEFAULT_PUSH_PROVIDER = "defaultPushProvider";
+    public static final String DEVICE_REGISTRATION_CONTEXT_VALIDITY_PERIOD =
+            "PushAuthenticator.DeviceRegistrationContext.ValidityPeriod";
+    public static final int DEFAULT_DEVICE_REGISTRATION_CONTEXT_VALIDITY_PERIOD = 180;
 
     /**
      * Private constructor to prevent initialization of the class.

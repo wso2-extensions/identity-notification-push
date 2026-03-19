@@ -19,7 +19,6 @@
 package org.wso2.carbon.identity.notification.push.device.handler.impl;
 
 import org.wso2.carbon.identity.application.authentication.framework.store.SessionDataStore;
-import org.wso2.carbon.identity.core.util.IdentityCacheUtil;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceRegistrationContextManager;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCache;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCacheEntry;
@@ -36,11 +35,10 @@ public class DeviceRegistrationContextManagerImpl implements DeviceRegistrationC
     @Override
     public void storeRegistrationContext(String key, DeviceRegistrationContext context, String tenantDomain) {
 
-        DeviceRegistrationRequestCache.getInstance().addToCache(
-                new DeviceRegistrationRequestCacheKey(key),
-                new DeviceRegistrationRequestCacheEntry(context),
+        DeviceRegistrationRequestCacheEntry cacheEntry = new DeviceRegistrationRequestCacheEntry(context);
+        DeviceRegistrationRequestCache.getInstance().addToCache(new DeviceRegistrationRequestCacheKey(key), cacheEntry,
                 tenantDomain);
-        storeToSessionStore(key, new DeviceRegistrationRequestCacheEntry(context));
+        storeToSessionStore(key, cacheEntry);
     }
 
     @Override
@@ -48,15 +46,11 @@ public class DeviceRegistrationContextManagerImpl implements DeviceRegistrationC
 
         DeviceRegistrationRequestCacheEntry cacheEntry = DeviceRegistrationRequestCache.getInstance().getValueFromCache(
                 new DeviceRegistrationRequestCacheKey(key), tenantDomain);
-        if (cacheEntry != null) {
-            return cacheEntry.getDeviceRegistrationContext();
-        } else {
+        if (cacheEntry == null) {
             cacheEntry = getFromSessionStore(key);
-            if (!IdentityCacheUtil.isCacheEntryExpired(cacheEntry)) {
-                return cacheEntry.getDeviceRegistrationContext();
-            }
         }
-        return null;
+
+        return cacheEntry != null ? cacheEntry.getDeviceRegistrationContext() : null;
     }
 
     @Override

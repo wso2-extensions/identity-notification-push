@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+  ~ Copyright (c) 2025-2026, WSO2 LLC. (http://www.wso2.com).
   ~
   ~ WSO2 LLC. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -153,6 +153,7 @@
                             org.wso2.carbon.identity.notification.sender.tenant.config.dto; version="${identity.event.handler.notification.imp.pkg.version.range}",
                             org.wso2.carbon.identity.notification.sender.tenant.config.exception; version="${identity.event.handler.notification.imp.pkg.version.range}",
                             org.wso2.carbon.identity.application.authentication.framework.store; version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.application.authentication.framework.util; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.utils; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.utils.multitenancy; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.database.utils.jdbc;version="${org.wso2.carbon.database.utils.version.range}",
@@ -189,7 +190,8 @@
                         <exclude>**/*Constants*.class</exclude>
                         <exclude>**/model/**</exclude>
                         <exclude>**/internal/**</exclude>
-                        <exclude>**/cache/**</exclude>
+                        <exclude>**/cache/DeviceRegistrationRequestCache.class</exclude>
+                        <exclude>**/cache/DeviceRegistrationRequestCacheKey.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
