@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2025-2026, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -25,20 +25,36 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.carbon.identity.application.authentication.framework.store.SessionDataStore;
+import org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils;
+import org.wso2.carbon.identity.core.util.IdentityUtil;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCache;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCacheEntry;
 import org.wso2.carbon.identity.notification.push.device.handler.cache.DeviceRegistrationRequestCacheKey;
 import org.wso2.carbon.identity.notification.push.device.handler.model.DeviceRegistrationContext;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEFAULT_DEVICE_REGISTRATION_CONTEXT_VALIDITY_PERIOD;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEVICE_REGISTRATION_CONTEXT_VALIDITY_PERIOD;
 
 /**
  * Unit tests for DeviceRegistrationContextManagerImpl.
  */
 public class DeviceRegistrationContextManagerImplTest {
+
+    private static final String TEST_ID = "id";
+    private static final String TEST_USER = "user";
+    private static final String TEST_TENANT = "tenant";
+    private static final String TEST_KEY = "testKey";
+    private static final String TEST_TENANT_DOMAIN = "carbon.super";
+    private static final String DEVICE_REGISTRATION_REQUEST_CACHE = "DEVICE_REGISTRATION_REQUEST_CACHE";
+    private static final long DEFAULT_VALIDITY_NANOS =
+            TimeUnit.SECONDS.toNanos(DEFAULT_DEVICE_REGISTRATION_CONTEXT_VALIDITY_PERIOD);
+
 
     private DeviceRegistrationContextManagerImpl deviceRegistrationContextManager;
 
@@ -51,9 +67,9 @@ public class DeviceRegistrationContextManagerImplTest {
     @Test
     public void testStoreRegistrationContext() {
 
-        DeviceRegistrationContext context = new DeviceRegistrationContext("id", "user", "tenant", false);
-        String key = "testKey";
-        String tenantDomain = "carbon.super";
+        DeviceRegistrationContext context = new DeviceRegistrationContext(TEST_ID, TEST_USER, TEST_TENANT, false);
+        String key = TEST_KEY;
+        String tenantDomain = TEST_TENANT_DOMAIN;
 
         try (MockedStatic<DeviceRegistrationRequestCache> mockedCache
                      = Mockito.mockStatic(DeviceRegistrationRequestCache.class);
@@ -88,9 +104,9 @@ public class DeviceRegistrationContextManagerImplTest {
     @Test
     public void testGetContext() {
 
-        DeviceRegistrationContext context = new DeviceRegistrationContext("id", "user", "tenant", false);
-        String key = "testKey";
-        String tenantDomain = "carbon.super";
+        DeviceRegistrationContext context = new DeviceRegistrationContext(TEST_ID, TEST_USER, TEST_TENANT, false);
+        String key = TEST_KEY;
+        String tenantDomain = TEST_TENANT_DOMAIN;
 
         try (MockedStatic<DeviceRegistrationRequestCache> mockedCache
                      = Mockito.mockStatic(DeviceRegistrationRequestCache.class);
@@ -116,8 +132,8 @@ public class DeviceRegistrationContextManagerImplTest {
     @Test
     public void testGetContextWithNull() {
 
-        String key = "testKey";
-        String tenantDomain = "carbon.super";
+        String key = TEST_KEY;
+        String tenantDomain = TEST_TENANT_DOMAIN;
 
         try (MockedStatic<DeviceRegistrationRequestCache> mockedCache
                      = Mockito.mockStatic(DeviceRegistrationRequestCache.class);
@@ -142,12 +158,12 @@ public class DeviceRegistrationContextManagerImplTest {
     @Test
     public void testClearContext() {
 
-        String key = "testKey";
-        String tenantDomain = "carbon.super";
+        String key = TEST_KEY;
+        String tenantDomain = TEST_TENANT_DOMAIN;
 
         try (MockedStatic<DeviceRegistrationRequestCache> mockedCache =
                      Mockito.mockStatic(DeviceRegistrationRequestCache.class);
-            MockedStatic<SessionDataStore> mockedSessionDataStore = Mockito.mockStatic(SessionDataStore.class)
+             MockedStatic<SessionDataStore> mockedSessionDataStore = Mockito.mockStatic(SessionDataStore.class)
         ) {
 
             DeviceRegistrationRequestCache cache = Mockito.mock(DeviceRegistrationRequestCache.class);
@@ -155,11 +171,74 @@ public class DeviceRegistrationContextManagerImplTest {
 
             SessionDataStore sessionDataStore = Mockito.mock(SessionDataStore.class);
             mockedSessionDataStore.when(SessionDataStore::getInstance).thenReturn(sessionDataStore);
-            doNothing().when(sessionDataStore).clearSessionData(key, "DEVICE_REGISTRATION_REQUEST_CACHE");
+            doNothing().when(sessionDataStore).clearSessionData(key, DEVICE_REGISTRATION_REQUEST_CACHE);
 
             deviceRegistrationContextManager.clearContext(key, tenantDomain);
 
             Mockito.verify(cache).clearCacheEntry(new DeviceRegistrationRequestCacheKey(key), tenantDomain);
+        }
+    }
+
+    /**
+     * Test getContext returns null when both the primary cache and the session store miss (return null).
+     */
+    @Test
+    public void testGetContext_ReturnNullWhenBothCacheAndSessionStoreMiss() {
+
+        try (MockedStatic<DeviceRegistrationRequestCache> mockedCache =
+                     Mockito.mockStatic(DeviceRegistrationRequestCache.class);
+             MockedStatic<SessionDataStore> mockedSessionDataStore = Mockito.mockStatic(SessionDataStore.class)
+        ) {
+            DeviceRegistrationRequestCache cache = Mockito.mock(DeviceRegistrationRequestCache.class);
+            mockedCache.when(DeviceRegistrationRequestCache::getInstance).thenReturn(cache);
+            when(cache.getValueFromCache(any(DeviceRegistrationRequestCacheKey.class), anyString()))
+                    .thenReturn(null);
+
+            SessionDataStore sessionDataStore = Mockito.mock(SessionDataStore.class);
+            mockedSessionDataStore.when(SessionDataStore::getInstance).thenReturn(sessionDataStore);
+            when(sessionDataStore.getSessionData(anyString(), anyString())).thenReturn(null);
+
+            DeviceRegistrationContext result = deviceRegistrationContextManager.getContext(TEST_KEY,
+                    TEST_TENANT_DOMAIN);
+
+            Assert.assertNull(result, "Expected null when both cache and session store return null.");
+        }
+    }
+
+    /**
+     * Test getContext returns null when the primary cache misses and the session store entry is expired.
+     */
+    @Test
+    public void testGetContext_ReturnNullWhenSessionStoreEntryIsExpired() {
+
+        DeviceRegistrationContext context = new DeviceRegistrationContext(TEST_ID, TEST_USER, TEST_TENANT, false);
+
+        try (MockedStatic<DeviceRegistrationRequestCache> mockedCache =
+                     Mockito.mockStatic(DeviceRegistrationRequestCache.class);
+             MockedStatic<SessionDataStore> mockedSessionDataStore = Mockito.mockStatic(SessionDataStore.class);
+             MockedStatic<FrameworkUtils> mockedFrameworkUtils = Mockito.mockStatic(FrameworkUtils.class);
+             MockedStatic<IdentityUtil> mockedIdentityUtil = Mockito.mockStatic(IdentityUtil.class)
+        ) {
+            // Primary cache misses.
+            DeviceRegistrationRequestCache cache = Mockito.mock(DeviceRegistrationRequestCache.class);
+            mockedCache.when(DeviceRegistrationRequestCache::getInstance).thenReturn(cache);
+            when(cache.getValueFromCache(any(DeviceRegistrationRequestCacheKey.class), anyString())).thenReturn(null);
+
+            mockedIdentityUtil.when(() -> IdentityUtil.getProperty(DEVICE_REGISTRATION_CONTEXT_VALIDITY_PERIOD))
+                    .thenReturn(null);
+            // Control time: 0L for construction, past validity for getter (expired).
+            mockedFrameworkUtils.when(FrameworkUtils::getCurrentStandardNano)
+                    .thenReturn(0L, DEFAULT_VALIDITY_NANOS + 1L);
+            DeviceRegistrationRequestCacheEntry sessionEntry = new DeviceRegistrationRequestCacheEntry(context);
+
+            SessionDataStore sessionDataStore = Mockito.mock(SessionDataStore.class);
+            mockedSessionDataStore.when(SessionDataStore::getInstance).thenReturn(sessionDataStore);
+            when(sessionDataStore.getSessionData(anyString(), anyString())).thenReturn(sessionEntry);
+
+            DeviceRegistrationContext result = deviceRegistrationContextManager.getContext(TEST_KEY,
+                    TEST_TENANT_DOMAIN);
+
+            Assert.assertNull(result, "Expected null when session store entry is expired.");
         }
     }
 }
