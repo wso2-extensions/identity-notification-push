@@ -1011,6 +1011,412 @@ public class DeviceHandlerServiceImplTest {
     }
 
     @Test
+    public void testEditDeviceMobileWithBothFields()
+            throws PushDeviceHandlerException, NotificationSenderManagementException, PushProviderException,
+            JOSEException, ParseException {
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("deviceToken", "newDeviceToken");
+            claims.put("name", "newDeviceName");
+            when(mockClaimsSet.getClaims()).thenReturn(claims);
+            when(mockClaimsSet.getStringClaim("deviceToken")).thenReturn("newDeviceToken");
+            when(mockClaimsSet.getStringClaim("name")).thenReturn("newDeviceName");
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(PushDeviceHandlerDataHolder::getInstance)
+                    .thenReturn(pushDeviceHandlerDataHolder);
+
+            NotificationSenderManagementService notificationSenderManagementService =
+                    mock(NotificationSenderManagementService.class);
+            when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
+                    .thenReturn(notificationSenderManagementService);
+            PushSenderDTO pushSenderDTO = new PushSenderDTO();
+            pushSenderDTO.setName("FCM_PushPublisher");
+            pushSenderDTO.setProvider("FCM");
+            pushSenderDTO.setProviderId("fcm-provider-id");
+            List<PushSenderDTO> pushSenders = new ArrayList<>();
+            pushSenders.add(pushSenderDTO);
+            when(notificationSenderManagementService.getPushSenders(anyBoolean()))
+                    .thenReturn(pushSenders);
+
+            FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
+            when(pushDeviceHandlerDataHolder.getPushProvider(eq("FCM"))).thenReturn(fcmPushProvider);
+            when(fcmPushProvider.getName()).thenReturn("FCM");
+            doNothing().when(fcmPushProvider).updateDevice(any(), any());
+
+            doNothing().when(deviceDAO).editDevice(anyString(), any());
+            Mockito.clearInvocations(deviceDAO);
+
+            deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+
+            verify(fcmPushProvider, times(1)).updateDevice(any(), any());
+            verify(deviceDAO, times(1)).editDevice(anyString(), any());
+        }
+    }
+
+    @Test
+    public void testEditDeviceMobileWithTokenOnly()
+            throws PushDeviceHandlerException, NotificationSenderManagementException, PushProviderException,
+            JOSEException, ParseException {
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("deviceToken", "newDeviceToken");
+            when(mockClaimsSet.getClaims()).thenReturn(claims);
+            when(mockClaimsSet.getStringClaim("deviceToken")).thenReturn("newDeviceToken");
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(PushDeviceHandlerDataHolder::getInstance)
+                    .thenReturn(pushDeviceHandlerDataHolder);
+
+            NotificationSenderManagementService notificationSenderManagementService =
+                    mock(NotificationSenderManagementService.class);
+            when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
+                    .thenReturn(notificationSenderManagementService);
+            PushSenderDTO pushSenderDTO = new PushSenderDTO();
+            pushSenderDTO.setName("FCM_PushPublisher");
+            pushSenderDTO.setProvider("FCM");
+            pushSenderDTO.setProviderId("fcm-provider-id");
+            List<PushSenderDTO> pushSenders = new ArrayList<>();
+            pushSenders.add(pushSenderDTO);
+            when(notificationSenderManagementService.getPushSenders(anyBoolean()))
+                    .thenReturn(pushSenders);
+
+            FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
+            when(pushDeviceHandlerDataHolder.getPushProvider(eq("FCM"))).thenReturn(fcmPushProvider);
+            when(fcmPushProvider.getName()).thenReturn("FCM");
+            doNothing().when(fcmPushProvider).updateDevice(any(), any());
+
+            doNothing().when(deviceDAO).editDevice(anyString(), any());
+            Mockito.clearInvocations(deviceDAO);
+
+            deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+
+            verify(fcmPushProvider, times(1)).updateDevice(any(), any());
+            verify(deviceDAO, times(1)).editDevice(anyString(), any());
+        }
+    }
+
+    @Test
+    public void testEditDeviceMobileWithNameOnly()
+            throws PushDeviceHandlerException, NotificationSenderManagementException, PushProviderException,
+            JOSEException, ParseException {
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("name", "newDeviceName");
+            when(mockClaimsSet.getClaims()).thenReturn(claims);
+            when(mockClaimsSet.getStringClaim("name")).thenReturn("newDeviceName");
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(PushDeviceHandlerDataHolder::getInstance)
+                    .thenReturn(pushDeviceHandlerDataHolder);
+
+            NotificationSenderManagementService notificationSenderManagementService =
+                    mock(NotificationSenderManagementService.class);
+            when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
+                    .thenReturn(notificationSenderManagementService);
+            PushSenderDTO pushSenderDTO = new PushSenderDTO();
+            pushSenderDTO.setName("FCM_PushPublisher");
+            pushSenderDTO.setProvider("FCM");
+            pushSenderDTO.setProviderId("fcm-provider-id");
+            List<PushSenderDTO> pushSenders = new ArrayList<>();
+            pushSenders.add(pushSenderDTO);
+            when(notificationSenderManagementService.getPushSenders(anyBoolean()))
+                    .thenReturn(pushSenders);
+
+            FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
+            when(pushDeviceHandlerDataHolder.getPushProvider(eq("FCM"))).thenReturn(fcmPushProvider);
+            when(fcmPushProvider.getName()).thenReturn("FCM");
+            doNothing().when(fcmPushProvider).updateDevice(any(), any());
+
+            doNothing().when(deviceDAO).editDevice(anyString(), any());
+            Mockito.clearInvocations(deviceDAO);
+
+            deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+
+            verify(fcmPushProvider, times(1)).updateDevice(any(), any());
+            verify(deviceDAO, times(1)).editDevice(anyString(), any());
+        }
+    }
+
+    @Test
+    public void testEditDeviceMobileDeviceNotFound() throws PushDeviceHandlerException {
+
+        Optional<Device> device = Optional.empty();
+        when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+        Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+            deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+        });
+    }
+
+    @Test
+    public void testEditDeviceMobileTokenValidationFailed()
+            throws PushDeviceHandlerException, JOSEException, ParseException {
+
+        try (
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(false);
+
+            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+                deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+            });
+        }
+    }
+
+    @Test
+    public void testEditDeviceMobileNoEditableFields()
+            throws PushDeviceHandlerException, JOSEException, ParseException {
+
+        try (
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+
+            Map<String, Object> claims = new HashMap<>();
+            when(mockClaimsSet.getClaims()).thenReturn(claims);
+
+            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+                deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+            });
+        }
+    }
+
+    @Test
+    public void testEditDeviceMobileProviderClientException()
+            throws PushDeviceHandlerException, NotificationSenderManagementException, PushProviderException,
+            JOSEException, ParseException {
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("deviceToken", "newDeviceToken");
+            when(mockClaimsSet.getClaims()).thenReturn(claims);
+            when(mockClaimsSet.getStringClaim("deviceToken")).thenReturn("newDeviceToken");
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(PushDeviceHandlerDataHolder::getInstance)
+                    .thenReturn(pushDeviceHandlerDataHolder);
+
+            NotificationSenderManagementService notificationSenderManagementService =
+                    mock(NotificationSenderManagementService.class);
+            when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
+                    .thenReturn(notificationSenderManagementService);
+            PushSenderDTO pushSenderDTO = new PushSenderDTO();
+            pushSenderDTO.setName("FCM_PushPublisher");
+            pushSenderDTO.setProvider("FCM");
+            pushSenderDTO.setProviderId("fcm-provider-id");
+            List<PushSenderDTO> pushSenders = new ArrayList<>();
+            pushSenders.add(pushSenderDTO);
+            when(notificationSenderManagementService.getPushSenders(anyBoolean()))
+                    .thenReturn(pushSenders);
+
+            FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
+            when(pushDeviceHandlerDataHolder.getPushProvider(eq("FCM"))).thenReturn(fcmPushProvider);
+            when(fcmPushProvider.getName()).thenReturn("FCM");
+            PushProviderClientException ppce = new PushProviderClientException(
+                    "ERR_DEVICE_UPDATE", "Failed to update device at provider");
+            doThrow(ppce).when(fcmPushProvider).updateDevice(any(), any());
+
+            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+                deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+            });
+        }
+    }
+
+    @Test
+    public void testEditDeviceMobileProviderServerException()
+            throws PushDeviceHandlerException, NotificationSenderManagementException, PushProviderException,
+            JOSEException, ParseException {
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("deviceToken", "newDeviceToken");
+            when(mockClaimsSet.getClaims()).thenReturn(claims);
+            when(mockClaimsSet.getStringClaim("deviceToken")).thenReturn("newDeviceToken");
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(PushDeviceHandlerDataHolder::getInstance)
+                    .thenReturn(pushDeviceHandlerDataHolder);
+
+            NotificationSenderManagementService notificationSenderManagementService =
+                    mock(NotificationSenderManagementService.class);
+            when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
+                    .thenReturn(notificationSenderManagementService);
+            PushSenderDTO pushSenderDTO = new PushSenderDTO();
+            pushSenderDTO.setName("FCM_PushPublisher");
+            pushSenderDTO.setProvider("FCM");
+            pushSenderDTO.setProviderId("fcm-provider-id");
+            List<PushSenderDTO> pushSenders = new ArrayList<>();
+            pushSenders.add(pushSenderDTO);
+            when(notificationSenderManagementService.getPushSenders(anyBoolean()))
+                    .thenReturn(pushSenders);
+
+            PushProviderServerException ppse = new PushProviderServerException(
+                    "ERR_PROVIDER_SERVER", "Provider service temporarily unavailable");
+            org.wso2.carbon.identity.notification.push.provider.PushProvider pushProvider =
+                    mock(org.wso2.carbon.identity.notification.push.provider.PushProvider.class);
+            when(pushDeviceHandlerDataHolder.getPushProvider(eq("FCM"))).thenReturn(pushProvider);
+            when(pushProvider.getName()).thenReturn("FCM");
+            doThrow(ppse).when(pushProvider).updateDevice(any(), any());
+
+            Assert.assertThrows(PushDeviceHandlerServerException.class, () -> {
+                deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+            });
+        }
+    }
+
+    @Test
     public void testGetRegistrationDiscoveryData() throws PushDeviceHandlerException {
 
         try (
