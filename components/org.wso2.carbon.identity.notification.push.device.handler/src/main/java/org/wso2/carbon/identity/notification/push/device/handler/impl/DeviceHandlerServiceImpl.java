@@ -18,6 +18,7 @@
 
 package org.wso2.carbon.identity.notification.push.device.handler.impl;
 
+import com.nimbusds.jwt.JWTClaimsSet;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -71,7 +72,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEFAULT_PUSH_PROVIDER;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEVICE_EDIT_REQUEST_DEVICE_NAME;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEVICE_EDIT_REQUEST_DEVICE_TOKEN;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_ALREADY_REGISTERED;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_EDIT_FAILED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_NOT_FOUND;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_REGISTRATION_FAILED;
@@ -245,6 +249,57 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
         Device device = getDevice(deviceId);
         handleEditDevice(device, path, value);
+    }
+
+    @Override
+    public void editDeviceMobile(String deviceId, String token) throws PushDeviceHandlerException {
+
+        Optional<Device> deviceOptional = deviceDAO.getDevice(deviceId);
+        if (!deviceOptional.isPresent()) {
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND.getCode(),
+                    String.format(ERROR_CODE_DEVICE_NOT_FOUND.getMessage(), deviceId));
+        }
+        Device device = deviceOptional.get();
+
+        JWTClaimsSet claimsSet;
+        try {
+            claimsSet = PushChallengeValidator.getValidatedClaimSet(token, device.getPublicKey());
+        } catch (PushTokenValidationException e) {
+            throw new PushDeviceHandlerClientException(ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED.getCode(),
+                    String.format(ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED.getMessage(), deviceId), e);
+        }
+
+        String deviceToken = null;
+        String deviceName = null;
+
+        try {
+            if (claimsSet.getClaims().containsKey(DEVICE_EDIT_REQUEST_DEVICE_TOKEN)) {
+                deviceToken = PushChallengeValidator
+                        .getClaimFromClaimSet(claimsSet, DEVICE_EDIT_REQUEST_DEVICE_TOKEN, deviceId);
+            }
+
+            if (claimsSet.getClaims().containsKey(DEVICE_EDIT_REQUEST_DEVICE_NAME)) {
+                deviceName = PushChallengeValidator
+                        .getClaimFromClaimSet(claimsSet, DEVICE_EDIT_REQUEST_DEVICE_NAME, deviceId);
+            }
+        } catch (PushTokenValidationException e) {
+            throw new PushDeviceHandlerClientException(e.getErrorCode(), e.getMessage(), e);
+        }
+
+        if (deviceToken == null && deviceName == null) {
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_EDIT_FAILED.getCode(),
+                    String.format(ERROR_CODE_DEVICE_EDIT_FAILED.getMessage(), deviceId));
+        }
+
+        if (deviceToken != null) {
+            device.setDeviceToken(deviceToken);
+        }
+        if (deviceName != null) {
+            device.setDeviceName(deviceName);
+        }
+
+        handleUpdateDeviceForProvider(device);
+        deviceDAO.editDevice(device.getDeviceId(), device);
     }
 
     @Override
