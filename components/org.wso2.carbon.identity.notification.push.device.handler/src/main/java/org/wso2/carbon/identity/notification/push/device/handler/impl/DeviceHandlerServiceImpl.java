@@ -18,7 +18,6 @@
 
 package org.wso2.carbon.identity.notification.push.device.handler.impl;
 
-import com.nimbusds.jwt.JWTClaimsSet;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -261,9 +260,9 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         }
         Device device = deviceOptional.get();
 
-        JWTClaimsSet claimsSet;
+        Map<String, Object> claims;
         try {
-            claimsSet = PushChallengeValidator.getValidatedClaimSet(token, device.getPublicKey());
+            claims = PushChallengeValidator.getValidatedClaims(token, device.getPublicKey());
         } catch (PushTokenValidationException e) {
             throw new PushDeviceHandlerClientException(ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED.getCode(),
                     String.format(ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED.getMessage(), deviceId), e);
@@ -273,24 +272,22 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         String deviceName = null;
 
         try {
-            if (claimsSet.getClaims().containsKey(DEVICE_EDIT_REQUEST_DEVICE_TOKEN)) {
-                deviceToken = PushChallengeValidator
-                        .getClaimFromClaimSet(claimsSet, DEVICE_EDIT_REQUEST_DEVICE_TOKEN, deviceId);
+            if (claims.containsKey(DEVICE_EDIT_REQUEST_DEVICE_TOKEN)) {
+                deviceToken = (String) claims.get(DEVICE_EDIT_REQUEST_DEVICE_TOKEN);
             }
 
-            if (claimsSet.getClaims().containsKey(DEVICE_EDIT_REQUEST_DEVICE_NAME)) {
-                deviceName = PushChallengeValidator
-                        .getClaimFromClaimSet(claimsSet, DEVICE_EDIT_REQUEST_DEVICE_NAME, deviceId);
+            if (claims.containsKey(DEVICE_EDIT_REQUEST_DEVICE_NAME)) {
+                deviceName = (String) claims.get(DEVICE_EDIT_REQUEST_DEVICE_NAME);
             }
-        } catch (PushTokenValidationException e) {
-            throw new PushDeviceHandlerClientException(e.getErrorCode(), e.getMessage(), e);
+        } catch (ClassCastException e) {
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_EDIT_FAILED.getCode(),
+                    String.format(ERROR_CODE_DEVICE_EDIT_FAILED.getMessage(), deviceId), e);
         }
 
         if (deviceToken == null && deviceName == null) {
             throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_EDIT_FAILED.getCode(),
                     String.format(ERROR_CODE_DEVICE_EDIT_FAILED.getMessage(), deviceId));
         }
-
         if (deviceToken != null) {
             device.setDeviceToken(deviceToken);
         }

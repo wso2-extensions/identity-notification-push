@@ -36,6 +36,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Date;
+import java.util.Map;
 
 /**
  * JWT token validator for Push notification scenarios.
@@ -79,6 +80,21 @@ public class PushChallengeValidator {
         } catch (ParseException e) {
             throw new PushTokenValidationException("Error occurred while parsing the JWT token.", e);
         }
+    }
+
+    /**
+     * Validate the JWT token and return the claim values.
+     *
+     * @param jwt       JWT token to be validated
+     * @param publicKey Public key used for signing the JWT
+     * @return Map of claim values
+     * @throws PushTokenValidationException Error when validating the JWT token
+     */
+    public static Map<String, Object> getValidatedClaims(String jwt, String publicKey)
+            throws PushTokenValidationException {
+
+        JWTClaimsSet claimsSet = getValidatedClaimSet(jwt, publicKey);
+        return claimsSet.getClaims();
     }
 
     /**
