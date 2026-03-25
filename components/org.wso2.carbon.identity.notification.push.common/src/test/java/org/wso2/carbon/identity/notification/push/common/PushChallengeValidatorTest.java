@@ -31,6 +31,8 @@ import org.wso2.carbon.identity.notification.push.common.exception.PushTokenVali
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -138,6 +140,89 @@ public class PushChallengeValidatorTest {
             when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
             when(mockSignedJWT.verify(any())).thenReturn(true);
             PushChallengeValidator.getValidatedClaimSet(validJwt, publicKey);
+        }
+    }
+
+    @Test
+    public void testGetValidatedClaimsWithValidToken() throws Exception {
+
+        try (MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)) {
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            Map<String, Object> expectedClaims = new HashMap<>();
+            expectedClaims.put("chg", "e0c3d04c-750b-4301-8f76-e07ebf02e53a");
+            expectedClaims.put("td", "carbon.super");
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+            when(mockClaimsSet.getClaims()).thenReturn(expectedClaims);
+
+            Map<String, Object> claims = PushChallengeValidator.getValidatedClaims(validJwt, publicKey);
+            assertNotNull(claims);
+        }
+    }
+
+    @Test(expectedExceptions = PushTokenValidationException.class)
+    public void testGetValidatedClaimsWithBlankToken() throws Exception {
+
+        PushChallengeValidator.getValidatedClaims("", publicKey);
+    }
+
+    @Test(expectedExceptions = PushTokenValidationException.class)
+    public void testGetValidatedClaimsWithInvalidJwtToken() throws Exception {
+
+        PushChallengeValidator.getValidatedClaims(invalidJwt, publicKey);
+    }
+
+    @Test(expectedExceptions = PushTokenValidationException.class)
+    public void testGetValidatedClaimsWithExpiredToken() throws Exception {
+
+        try (MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)) {
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+            PushChallengeValidator.getValidatedClaims(validJwt, publicKey);
+        }
+    }
+
+    @Test(expectedExceptions = PushTokenValidationException.class)
+    public void testGetValidatedClaimsWithInvalidSignature() throws Exception {
+
+        try (MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)) {
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(null);
+            PushChallengeValidator.getValidatedClaims(validJwt, invalidPublicKey);
+        }
+    }
+
+    @Test
+    public void testGetValidatedClaimsReturnsCorrectClaimValues() throws Exception {
+
+        try (MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)) {
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            Map<String, Object> expectedClaims = new HashMap<>();
+            expectedClaims.put("td", "carbon.super");
+            expectedClaims.put("pid", "f5ae6a0d-390a-4eea-a380-8bcc86e4a148");
+            expectedClaims.put("chg", "e0c3d04c-750b-4301-8f76-e07ebf02e53a");
+            expectedClaims.put("res", "APPROVED");
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+            when(mockClaimsSet.getClaims()).thenReturn(expectedClaims);
+
+            Map<String, Object> claims = PushChallengeValidator.getValidatedClaims(validJwt, publicKey);
+            assertNotNull(claims);
+            Assert.assertEquals(claims.get("td"), "carbon.super");
+            Assert.assertEquals(claims.get("pid"), "f5ae6a0d-390a-4eea-a380-8bcc86e4a148");
+            Assert.assertEquals(claims.get("chg"), "e0c3d04c-750b-4301-8f76-e07ebf02e53a");
+            Assert.assertEquals(claims.get("res"), "APPROVED");
+            Assert.assertEquals(claims.size(), 4);
         }
     }
 

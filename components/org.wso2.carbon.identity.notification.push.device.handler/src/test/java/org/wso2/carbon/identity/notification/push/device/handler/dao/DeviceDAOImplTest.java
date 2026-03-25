@@ -42,7 +42,7 @@ public class DeviceDAOImplTest {
             "DEVICE_MODEL, DEVICE_TOKEN, DEVICE_HANDLE, PROVIDER, PUBLIC_KEY, TENANT_ID) VALUES " +
             "( ? ,  ? ,  ? ,  ? ,  ? ,  ? ,  ? ,  ? ,  ? )";
     public static final String UNREGISTER_DEVICE_TEST = "DELETE FROM IDN_PUSH_DEVICE_STORE WHERE ID =  ? ";
-    public static final String EDIT_DEVICE_TEST = "UPDATE IDN_PUSH_DEVICE_STORE SET DEVICE_NAME =  ?  " +
+    public static final String EDIT_DEVICE_TEST = "UPDATE IDN_PUSH_DEVICE_STORE SET DEVICE_NAME =  ? , " +
             "DEVICE_TOKEN =  ?  WHERE ID =  ? ";
     private DeviceDAOImpl deviceDAO;
 
