@@ -58,7 +58,7 @@ public class PushDeviceHandlerConstants {
         public static final String GET_PUBLIC_KEY_BY_ID = "SELECT PUBLIC_KEY FROM IDN_PUSH_DEVICE_STORE " +
                 "WHERE ID = :ID;";
         public static final String UNREGISTER_DEVICE = "DELETE FROM IDN_PUSH_DEVICE_STORE WHERE ID = :ID;";
-        public static final String EDIT_DEVICE = "UPDATE IDN_PUSH_DEVICE_STORE SET DEVICE_NAME = :DEVICE_NAME; " +
+        public static final String EDIT_DEVICE = "UPDATE IDN_PUSH_DEVICE_STORE SET DEVICE_NAME = :DEVICE_NAME;, " +
                 "DEVICE_TOKEN = :DEVICE_TOKEN; WHERE ID = :ID;";
     }
 
