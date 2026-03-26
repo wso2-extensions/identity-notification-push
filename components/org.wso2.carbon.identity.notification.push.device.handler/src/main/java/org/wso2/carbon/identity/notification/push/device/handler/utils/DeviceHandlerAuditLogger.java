@@ -45,7 +45,7 @@ public class DeviceHandlerAuditLogger {
      */
     public void printAuditLog(Operation operation, String deviceId, String userId) {
 
-        JSONObject data = createAuditLogEntry(userId);
+        JSONObject data = createAuditLogEntry(operation, userId);
         buildAuditLog(operation, deviceId, data);
     }
 
@@ -72,11 +72,21 @@ public class DeviceHandlerAuditLogger {
      *
      * @return Audit log data.
      */
-    private JSONObject createAuditLogEntry(String userId) {
+    private JSONObject createAuditLogEntry(Operation operation, String userId) {
 
         JSONObject data = new JSONObject();
         data.put(LogConstants.END_USER_ID, userId != null ? userId : JSONObject.NULL);
-        data.put(LogConstants.UNREGISTERED_AT, System.currentTimeMillis());
+        switch (operation) {
+            case REGISTER_DEVICE:
+                data.put(LogConstants.REGISTERED_AT, System.currentTimeMillis());
+                break;
+            case UPDATE_DEVICE:
+                data.put(LogConstants.UPDATED_AT, System.currentTimeMillis());
+                break;
+            case UNREGISTER_DEVICE:
+                data.put(LogConstants.UNREGISTERED_AT, System.currentTimeMillis());
+                break;
+        }
 
         return data;
     }
@@ -128,6 +138,8 @@ public class DeviceHandlerAuditLogger {
      */
     public enum Operation {
 
+        REGISTER_DEVICE("Register-Push-Auth-Device"),
+        UPDATE_DEVICE("Update-Push-Auth-Device"),
         UNREGISTER_DEVICE("Unregister-Push-Auth-Device");
 
         private final String logAction;
@@ -150,6 +162,8 @@ public class DeviceHandlerAuditLogger {
 
         public static final String TARGET_TYPE_FIELD = "Push-Auth-Device";
         public static final String END_USER_ID = "UserId";
+        public static final String REGISTERED_AT = "RegisteredAt";
+        public static final String UPDATED_AT = "UpdatedAt";
         public static final String UNREGISTERED_AT = "UnregisteredAt";
     }
 }

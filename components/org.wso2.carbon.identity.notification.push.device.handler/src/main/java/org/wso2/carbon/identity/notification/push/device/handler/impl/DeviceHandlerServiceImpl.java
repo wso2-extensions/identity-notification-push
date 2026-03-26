@@ -138,6 +138,11 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             device = handleDeviceRegistration(registrationRequest, context);
             if (context.isRegistered()) {
                 deviceRegistrationContextManager.clearContext(registrationRequest.getDeviceId(), tenantDomain);
+                AUDIT_LOGGER.printAuditLog(
+                        DeviceHandlerAuditLogger.Operation.REGISTER_DEVICE,
+                        deviceId,
+                        device.getUserId()
+                );
             } else {
                 throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_REGISTRATION_FAILED.getCode(),
                         String.format(ERROR_CODE_DEVICE_REGISTRATION_FAILED.getMessage(), deviceId));
@@ -248,6 +253,11 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
         Device device = getDevice(deviceId);
         handleEditDevice(device, path, value);
+        AUDIT_LOGGER.printAuditLog(
+                DeviceHandlerAuditLogger.Operation.UPDATE_DEVICE,
+                deviceId,
+                device.getUserId()
+        );
     }
 
     @Override
@@ -294,6 +304,11 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
         handleUpdateDeviceForProvider(device);
         deviceDAO.editDevice(device.getDeviceId(), device);
+        AUDIT_LOGGER.printAuditLog(
+                DeviceHandlerAuditLogger.Operation.UPDATE_DEVICE,
+                deviceId,
+                device.getUserId()
+        );
     }
 
     @Override
