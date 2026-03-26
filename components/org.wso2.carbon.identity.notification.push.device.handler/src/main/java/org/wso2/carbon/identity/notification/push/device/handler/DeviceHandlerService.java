@@ -99,7 +99,7 @@ public interface DeviceHandlerService {
      * @param token Token.
      * @throws PushDeviceHandlerException Push Device Handler Exception.
      */
-    void editDeviceMobile(String deviceId, String token) throws PushDeviceHandlerException;
+    default void editDeviceMobile(String deviceId, String token) throws PushDeviceHandlerException{}
 
     /**
      * Get registration discovery data.
