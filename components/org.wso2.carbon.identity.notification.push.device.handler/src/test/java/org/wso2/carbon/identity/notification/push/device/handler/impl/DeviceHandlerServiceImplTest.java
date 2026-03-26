@@ -1225,6 +1225,109 @@ public class DeviceHandlerServiceImplTest {
     }
 
     @Test
+    public void testEditDeviceMobileWithInvalidDeviceTokenClaimType()
+            throws PushDeviceHandlerException, JOSEException, ParseException {
+
+        try (
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+
+            // Set deviceToken claim as a non-String type (Integer) to trigger validation failure.
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("deviceToken", 12345);
+            when(mockClaimsSet.getClaims()).thenReturn(claims);
+
+            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+                deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+            });
+        }
+    }
+
+    @Test
+    public void testEditDeviceMobileWithInvalidDeviceNameClaimType()
+            throws PushDeviceHandlerException, JOSEException, ParseException {
+
+        try (
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+
+            // Set name claim as a non-String type (Boolean) to trigger validation failure.
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("name", true);
+            when(mockClaimsSet.getClaims()).thenReturn(claims);
+
+            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+                deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+            });
+        }
+    }
+
+    @Test
+    public void testEditDeviceMobileWithBothInvalidClaimTypes()
+            throws PushDeviceHandlerException, JOSEException, ParseException {
+
+        try (
+                MockedStatic<SignedJWT> mockedStatic = Mockito.mockStatic(SignedJWT.class)
+        ) {
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            deviceObj.setProvider("FCM");
+            deviceObj.setDeviceToken(deviceToken);
+            deviceObj.setPublicKey(publicKey);
+            Optional<Device> device = Optional.of(deviceObj);
+            when(deviceDAO.getDevice(anyString())).thenReturn(device);
+
+            mockedStatic.when(() -> SignedJWT.parse(validJwt)).thenReturn(mockSignedJWT);
+
+            when(mockSignedJWT.getJWTClaimsSet()).thenReturn(mockClaimsSet);
+            when(mockClaimsSet.getExpirationTime()).thenReturn(new Date(System.currentTimeMillis() + 3000000));
+            when(mockClaimsSet.getNotBeforeTime()).thenReturn(new Date(System.currentTimeMillis() - 3000000));
+            when(mockSignedJWT.verify(any())).thenReturn(true);
+
+            // Set both claims as non-String types. The deviceToken check runs first.
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("deviceToken", 12345);
+            claims.put("name", 67890);
+            when(mockClaimsSet.getClaims()).thenReturn(claims);
+
+            Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
+                deviceHandlerService.editDeviceMobile("1234567890", validJwt);
+            });
+        }
+    }
+
+    @Test
     public void testEditDeviceMobileTokenValidationFailed()
             throws PushDeviceHandlerException, JOSEException, ParseException {
 
