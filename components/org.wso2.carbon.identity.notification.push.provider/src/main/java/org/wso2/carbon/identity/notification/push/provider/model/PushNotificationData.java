@@ -18,6 +18,8 @@
 
 package org.wso2.carbon.identity.notification.push.provider.model;
 
+import org.apache.commons.lang.StringUtils;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +37,7 @@ public class PushNotificationData {
     private final String tenantDomain;
     private final String organizationId;
     private final String organizationName;
+    private final String primaryTenantDomain;
     private final String userStoreDomain;
     private final String applicationName;
     private final String notificationScenario;
@@ -53,6 +56,7 @@ public class PushNotificationData {
         this.tenantDomain = builder.tenantDomain;
         this.organizationId = builder.organizationId;
         this.organizationName = builder.organizationName;
+        this.primaryTenantDomain = builder.primaryTenantDomain;
         this.userStoreDomain = builder.userStoreDomain;
         this.applicationName = builder.applicationName;
         this.notificationScenario = builder.notificationScenario;
@@ -95,6 +99,11 @@ public class PushNotificationData {
     public String getOrganizationName() {
 
         return organizationName;
+    }
+
+    public String getPrimaryTenantDomain() {
+
+        return primaryTenantDomain;
     }
 
     public String getUserStoreDomain() {
@@ -156,6 +165,9 @@ public class PushNotificationData {
 
         Map<String, String> additionalData = new HashMap<>();
         boolean isOrganizationUser = organizationId != null && organizationName != null;
+
+        additionalData.put("relativePath", buildRelativePath());
+
         if (username != null) {
             additionalData.put("username", username);
         }
@@ -165,6 +177,9 @@ public class PushNotificationData {
         }
         if (tenantDomain != null && !isOrganizationUser) {
             additionalData.put("tenantDomain", tenantDomain);
+        }
+        if (StringUtils.isNotEmpty(primaryTenantDomain)) {
+            additionalData.put("tenantDomain", primaryTenantDomain);
         }
         if (userStoreDomain != null) {
             additionalData.put("userStoreDomain", userStoreDomain);
@@ -199,6 +214,18 @@ public class PushNotificationData {
         return additionalData;
     }
 
+    private String buildRelativePath() {
+
+        if (StringUtils.isNotEmpty(organizationId) && StringUtils.isNotEmpty(primaryTenantDomain)) {
+            return "/t/" + primaryTenantDomain + "/o/" + organizationId;
+        } else if (StringUtils.isNotEmpty(organizationId)) {
+            return "/o/" + organizationId;
+        } else if (StringUtils.isNotEmpty(tenantDomain)) {
+            return "/t/" + tenantDomain;
+        }
+        return StringUtils.EMPTY;
+    }
+
     /**
      * Builder class for PushNotificationData.
      */
@@ -213,6 +240,7 @@ public class PushNotificationData {
         private String tenantDomain;
         private String organizationId;
         private String organizationName;
+        private String primaryTenantDomain;
         private String userStoreDomain;
         private String applicationName;
         private String notificationScenario;
@@ -256,6 +284,12 @@ public class PushNotificationData {
         public Builder setOrganizationName(String organizationName) {
 
             this.organizationName = organizationName;
+            return this;
+        }
+
+        public Builder setPrimaryTenantDomain(String primaryTenantDomain) {
+
+            this.primaryTenantDomain = primaryTenantDomain;
             return this;
         }
 
