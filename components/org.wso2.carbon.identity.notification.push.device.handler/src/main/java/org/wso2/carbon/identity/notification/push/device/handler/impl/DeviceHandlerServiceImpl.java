@@ -71,7 +71,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEFAULT_PUSH_PROVIDER;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEVICE_NAME;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEVICE_TOKEN;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_ALREADY_REGISTERED;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_EDIT_FAILED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_NOT_FOUND;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_REGISTRATION_FAILED;
@@ -135,6 +138,11 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             device = handleDeviceRegistration(registrationRequest, context);
             if (context.isRegistered()) {
                 deviceRegistrationContextManager.clearContext(registrationRequest.getDeviceId(), tenantDomain);
+                AUDIT_LOGGER.printAuditLog(
+                        DeviceHandlerAuditLogger.Operation.REGISTER_DEVICE,
+                        deviceId,
+                        device.getUserId()
+                );
             } else {
                 throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_REGISTRATION_FAILED.getCode(),
                         String.format(ERROR_CODE_DEVICE_REGISTRATION_FAILED.getMessage(), deviceId));
@@ -245,6 +253,62 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
 
         Device device = getDevice(deviceId);
         handleEditDevice(device, path, value);
+        AUDIT_LOGGER.printAuditLog(
+                DeviceHandlerAuditLogger.Operation.UPDATE_DEVICE,
+                deviceId,
+                device.getUserId()
+        );
+    }
+
+    @Override
+    public void editDeviceMobile(String deviceId, String token) throws PushDeviceHandlerException {
+
+        Optional<Device> deviceOptional = deviceDAO.getDevice(deviceId);
+        if (!deviceOptional.isPresent()) {
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND.getCode(),
+                    String.format(ERROR_CODE_DEVICE_NOT_FOUND.getMessage(), deviceId));
+        }
+        Device device = deviceOptional.get();
+
+        Map<String, Object> claims;
+        try {
+            claims = PushChallengeValidator.getValidatedClaims(token, device.getPublicKey());
+        } catch (PushTokenValidationException e) {
+            throw new PushDeviceHandlerClientException(ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED.getCode(),
+                    String.format(ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED.getMessage(), deviceId), e);
+        }
+
+        validateDeviceEditClaims(claims, deviceId);
+
+        String deviceToken = null;
+        String deviceName = null;
+
+        if (claims.containsKey(DEVICE_TOKEN)) {
+            deviceToken = (String) claims.get(DEVICE_TOKEN);
+        }
+
+        if (claims.containsKey(DEVICE_NAME)) {
+            deviceName = (String) claims.get(DEVICE_NAME);
+        }
+
+        if (deviceToken == null && deviceName == null) {
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_EDIT_FAILED.getCode(),
+                    String.format(ERROR_CODE_DEVICE_EDIT_FAILED.getMessage(), deviceId));
+        }
+        if (deviceToken != null) {
+            device.setDeviceToken(deviceToken);
+        }
+        if (deviceName != null) {
+            device.setDeviceName(deviceName);
+        }
+
+        handleUpdateDeviceForProvider(device);
+        deviceDAO.editDevice(device.getDeviceId(), device);
+        AUDIT_LOGGER.printAuditLog(
+                DeviceHandlerAuditLogger.Operation.UPDATE_DEVICE,
+                deviceId,
+                device.getUserId()
+        );
     }
 
     @Override
@@ -672,5 +736,26 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         pushSenderData.setProperties(pushSenderDTO.getProperties());
         pushSenderData.setProviderId(pushSenderDTO.getProviderId());
         return pushSenderData;
+    }
+
+    /**
+     * Validate the claims in the edit device token.
+     *
+     * @param claims   Claims to validate.
+     * @param deviceId Device ID for error messages.
+     * @throws PushDeviceHandlerClientException If the claims are invalid.
+     */
+    private static void validateDeviceEditClaims(Map<String, Object> claims, String deviceId)
+            throws PushDeviceHandlerClientException {
+
+        if (claims.containsKey(DEVICE_TOKEN) && !(claims.get(DEVICE_TOKEN) instanceof String)) {
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_EDIT_FAILED.getCode(),
+                    String.format(ERROR_CODE_DEVICE_EDIT_FAILED.getMessage(), deviceId));
+        }
+
+        if (claims.containsKey(DEVICE_NAME) && !(claims.get(DEVICE_NAME) instanceof String)) {
+            throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_EDIT_FAILED.getCode(),
+                    String.format(ERROR_CODE_DEVICE_EDIT_FAILED.getMessage(), deviceId));
+        }
     }
 }

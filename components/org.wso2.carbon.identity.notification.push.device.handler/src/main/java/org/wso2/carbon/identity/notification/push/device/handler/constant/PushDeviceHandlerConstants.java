@@ -30,6 +30,8 @@ public class PushDeviceHandlerConstants {
     public static final String DEVICE_REGISTRATION_CONTEXT_VALIDITY_PERIOD =
             "PushAuthenticator.DeviceRegistrationContext.ValidityPeriod";
     public static final int DEFAULT_DEVICE_REGISTRATION_CONTEXT_VALIDITY_PERIOD = 180;
+    public static final String DEVICE_NAME = "name";
+    public static final String DEVICE_TOKEN = "deviceToken";
 
     /**
      * Private constructor to prevent initialization of the class.
@@ -56,7 +58,7 @@ public class PushDeviceHandlerConstants {
         public static final String GET_PUBLIC_KEY_BY_ID = "SELECT PUBLIC_KEY FROM IDN_PUSH_DEVICE_STORE " +
                 "WHERE ID = :ID;";
         public static final String UNREGISTER_DEVICE = "DELETE FROM IDN_PUSH_DEVICE_STORE WHERE ID = :ID;";
-        public static final String EDIT_DEVICE = "UPDATE IDN_PUSH_DEVICE_STORE SET DEVICE_NAME = :DEVICE_NAME; " +
+        public static final String EDIT_DEVICE = "UPDATE IDN_PUSH_DEVICE_STORE SET DEVICE_NAME = :DEVICE_NAME;, " +
                 "DEVICE_TOKEN = :DEVICE_TOKEN; WHERE ID = :ID;";
     }
 
@@ -136,6 +138,10 @@ public class PushDeviceHandlerConstants {
         ERROR_CODE_FAILED_TO_RESOLVE_PUSH_PROVIDER(
                 "PDH-15013",
                 "Failed to resolve the correct push provider for the request."
+        ),
+        ERROR_CODE_DEVICE_EDIT_FAILED(
+                "PDH-150014",
+                "Error occurred while updating the device for the device ID: %s."
         );
 
         private final String code;
