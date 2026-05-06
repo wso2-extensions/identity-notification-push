@@ -130,15 +130,57 @@ public class DeviceHandlerAuditLoggerTest {
     public void testCreateAuditLogEntryWithValidData() throws Exception {
 
         Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class
-                .getDeclaredMethod("createAuditLogEntry", String.class);
+                .getDeclaredMethod("createAuditLogEntry",
+                        DeviceHandlerAuditLogger.Operation.class, String.class);
         createAuditLogEntryMethod.setAccessible(true);
-        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(auditLogger, "testUserId");
+        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(
+                auditLogger, DeviceHandlerAuditLogger.Operation.UNREGISTER_DEVICE, "testUserId");
 
         Assert.assertNotNull(result);
         Assert.assertTrue(result.has("UserId"));
         Assert.assertEquals(result.getString("UserId"), "testUserId");
         Assert.assertTrue(result.has("UnregisteredAt"));
         Assert.assertTrue(result.getLong("UnregisteredAt") > 0);
+    }
+
+    /**
+     * Test the private method 'createAuditLogEntry' with register device operation.
+     */
+    @Test
+    public void testCreateAuditLogEntryWithRegisterDevice() throws Exception {
+
+        Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class
+                .getDeclaredMethod("createAuditLogEntry",
+                        DeviceHandlerAuditLogger.Operation.class, String.class);
+        createAuditLogEntryMethod.setAccessible(true);
+        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(
+                auditLogger, DeviceHandlerAuditLogger.Operation.REGISTER_DEVICE, "testUserId");
+
+        Assert.assertNotNull(result);
+        Assert.assertTrue(result.has("UserId"));
+        Assert.assertEquals(result.getString("UserId"), "testUserId");
+        Assert.assertTrue(result.has("RegisteredAt"));
+        Assert.assertTrue(result.getLong("RegisteredAt") > 0);
+    }
+
+    /**
+     * Test the private method 'createAuditLogEntry' with update device operation.
+     */
+    @Test
+    public void testCreateAuditLogEntryWithUpdateDevice() throws Exception {
+
+        Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class
+                .getDeclaredMethod("createAuditLogEntry",
+                        DeviceHandlerAuditLogger.Operation.class, String.class);
+        createAuditLogEntryMethod.setAccessible(true);
+        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(
+                auditLogger, DeviceHandlerAuditLogger.Operation.UPDATE_DEVICE, "testUserId");
+
+        Assert.assertNotNull(result);
+        Assert.assertTrue(result.has("UserId"));
+        Assert.assertEquals(result.getString("UserId"), "testUserId");
+        Assert.assertTrue(result.has("UpdatedAt"));
+        Assert.assertTrue(result.getLong("UpdatedAt") > 0);
     }
 
     /**
