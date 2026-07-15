@@ -31,6 +31,104 @@ public class PushDeviceHandlerConstants {
             "PushAuthenticator.DeviceRegistrationContext.ValidityPeriod";
     public static final int DEFAULT_DEVICE_REGISTRATION_CONTEXT_VALIDITY_PERIOD = 180;
 
+    public static final String MAX_DEVICE_LIMIT_PER_USER = "PushAuthenticator.DeviceManagement.MaxDeviceLimitPerUser";
+    public static final int DEFAULT_MAX_DEVICE_LIMIT_PER_USER = 10;
+    public static  final int DEFAULT_MIN_DEVICE_LIMIT_PER_USER = 2;
+    public static final String PUSH_DEVICE_MGT_RESOURCE_TYPE = "DEVICE_MANAGEMENT";
+    public static final String PUSH_DEVICE_MGT_RESOURCE_NAME = "PUSH_DEVICE_MANAGEMENT";
+    public static final String ATTR_ENABLE_MULTIPLE_DEVICE_ENROLLMENT = "enableMultipleDeviceEnrollment";
+    public static final String ATTR_MAX_DEVICE_LIMIT = "maximumDeviceLimit";
+    public static final String ATTR_ENABLE_DEVICE_REGISTRATION_NOTIFICATIONS = "enableDeviceRegistrationNotifications";
+    public static final String ATTR_DEVICE_REGISTRATION_NOTIFICATION_CHANNELS =
+            "deviceRegistrationNotificationChannels";
+    public static final String NOTIFICATION_CHANNELS_SEPARATOR = ",";
+    public static final String REGISTRATION_TIME_FORMATTER_PATTERN = "yyyy-MM-dd HH:mm:ss 'UTC'";
+
+
+
+    /**
+     * Constants related to email notifications sent during device management operations.
+     */
+    public static class EmailNotificationConstants {
+
+        public static final String PUSH_DEVICE_REGISTRATION_TEMPLATE = "PushDeviceRegistration";
+
+        // Placeholders used in the template body
+        public static final String DEVICE_NAME_PLACEHOLDER = "push-device-name";
+        public static final String DEVICE_MODEL_PLACEHOLDER = "push-device-model";
+        public static final String REGISTRATION_TIME_PLACEHOLDER = "registration-time";
+        public static final String IP_ADDRESS_PLACEHOLDER = "ip-address";
+    }
+
+    /**
+     * Constants related to push notifications sent during device management operations.
+     */
+    public static final class PushNotificationConstants {
+
+        public static final String PUSH_NOTIFICATION_EVENT_NAME = "TRIGGER_PUSH_NOTIFICATION";
+        public static final String PUSH_NOTIFICATION_CHANNEL = "PUSH_NOTIFICATION";
+        public static final String NOTIFICATION_SCENARIO = "NOTIFICATION_SCENARIO";
+        public static final String DEVICE_REGISTRATION_SCENARIO = "DEVICE_REGISTRATION";
+        public static final String NOTIFICATION_PROVIDER = "notificationProvider";
+        public static final String DEVICE_TOKEN = "deviceToken";
+        public static final String DEVICE_ID = "deviceId";
+        public static final String DEVICE_HANDLE = "deviceHandle";
+        public static final String IP_ADDRESS = "ipAddress";
+
+        // Placeholders rendered in the push notification template.
+        public static final String DEVICE_NAME_PLACEHOLDER = "push-device-name";
+        public static final String DEVICE_MODEL_PLACEHOLDER = "push-device-model";
+        public static final String REGISTRATION_TIME_PLACEHOLDER = "registration-time";
+
+        /**
+         * Private constructor to prevent initialization of the class.
+         */
+        private PushNotificationConstants() {
+
+        }
+    }
+
+    /**
+     * Constants related to diagnostic logging of device management operations.
+     */
+    public static class LogConstants {
+
+        public static final String PUSH_DEVICE_HANDLER_SERVICE = "push-device-handler-service";
+
+        /**
+         * Action identifiers used in diagnostic logs.
+         */
+        public static class ActionIDs {
+
+            public static final String TRIGGER_DEVICE_REGISTRATION_EMAIL_NOTIFICATION =
+                    "trigger-device-registration-email-notification";
+            public static final String TRIGGER_DEVICE_REGISTRATION_PUSH_NOTIFICATION =
+                    "trigger-device-registration-push-notification";
+
+            private ActionIDs() {
+
+            }
+        }
+
+        /**
+         * Input parameter keys used in diagnostic logs.
+         */
+        public static class InputKeys {
+
+            public static final String DEVICE_ID = "device-id";
+            public static final String USER_ID = "user-id";
+            public static final String TENANT_DOMAIN = "tenant-domain";
+
+            private InputKeys() {
+
+            }
+        }
+
+        private LogConstants() {
+
+        }
+    }
+
     /**
      * Private constructor to prevent initialization of the class.
      */
@@ -136,6 +234,38 @@ public class PushDeviceHandlerConstants {
         ERROR_CODE_FAILED_TO_RESOLVE_PUSH_PROVIDER(
                 "PDH-15013",
                 "Failed to resolve the correct push provider for the request."
+        ),
+        ERROR_CODE_GETTING_PUSH_DEVICE_CONFIG(
+                "PDH-15014",
+                "Failed to get push device configuration for the tenant."
+        ),
+        ERROR_CODE_ADDING_PUSH_DEVICE_CONFIG(
+                "PDH-15015",
+                "Failed to add push device configuration for the tenant."
+        ),
+        ERROR_CODE_UPDATING_PUSH_DEVICE_CONFIG(
+                "PDH-15016",
+                "Failed to update push device configuration for the tenant."
+        ),
+        ERROR_CODE_INVALID_DEVICE_LIMIT_CONFIG(
+                "PDH-15017",
+                "Maximum device limit can only be updated when multiple device enrollment is enabled."
+        ),
+        ERROR_CODE_DEVICE_LIMIT_PER_USER_EXCEEDS(
+                "PDH-15018",
+                "Maximum device limit cannot exceed the server-configured device registration per user."
+        ),
+        ERROR_CODE_MAX_DEVICE_LIMIT_REACHED(
+                "PDH-15019",
+                "Maximum device limit reached for the user: %s."
+        ),
+        ERROR_CODE_DEVICE_ID_ALREADY_REGISTERED(
+                "PDH-15020",
+                "Device is already registered for the device ID: %s."
+        ),
+        ERROR_CODE_INVALID_DEVICE_LIMIT_VALUE(
+                "PDH-15021",
+                "Maximum device limit must be a positive value when multiple device enrollment is enabled."
         );
 
         private final String code;

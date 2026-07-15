@@ -53,6 +53,10 @@
         </dependency>
         <dependency>
             <groupId>org.wso2.carbon.identity.event.handler.notification</groupId>
+            <artifactId>org.wso2.carbon.identity.event.handler.notification</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.event.handler.notification</groupId>
             <artifactId>org.wso2.carbon.identity.notification.sender.tenant.config</artifactId>
         </dependency>
         <dependency>
@@ -94,6 +98,10 @@
         <dependency>
             <groupId>org.wso2.carbon.identity.framework</groupId>
             <artifactId>org.wso2.carbon.identity.central.log.mgt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.wso2.carbon.identity.framework</groupId>
+            <artifactId>org.wso2.carbon.identity.configuration.mgt.core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.wso2.orbit.com.google.firebase</groupId>
@@ -139,12 +147,19 @@
                             org.json,
                             org.wso2.carbon.identity.central.log.mgt.utils;
                             version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.configuration.mgt.core; version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.configuration.mgt.core.exception; version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.configuration.mgt.core.model; version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.configuration.mgt.core.constant; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.apache.commons.logging; version="${org.apache.commons.logging.range}",
+                            org.apache.commons.collections,
                             org.osgi.framework; version="${osgi.framework.imp.pkg.version.range}",
                             org.osgi.service.component; version="${osgi.service.component.imp.pkg.version.range}",
                             org.wso2.carbon.identity.base; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.core; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.core.cache; version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.core.context; version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.core.context.model; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.core.util; version="${carbon.identity.framework.imp.pkg.version.range}",
                             org.wso2.carbon.identity.organization.management.service;version="${org.wso2.carbon.identity.organization.management.core.version.range}",
                             org.wso2.carbon.identity.organization.management.service.exception;version="${org.wso2.carbon.identity.organization.management.core.version.range}",
@@ -168,6 +183,10 @@
                             org.wso2.carbon.user.core.common; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon; version="${carbon.kernel.package.import.version.range}",
                             org.wso2.carbon.context; version="${carbon.kernel.package.import.version.range}",
+                            org.wso2.carbon.identity.event; version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.event.event; version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.event.services; version="${carbon.identity.framework.imp.pkg.version.range}",
+                            org.wso2.carbon.identity.governance.service.notification; version="${identity.governance.imp.pkg.version.range}",
                         </Import-Package>
                     </instructions>
                 </configuration>

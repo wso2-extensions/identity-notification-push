@@ -124,21 +124,63 @@ public class DeviceHandlerAuditLoggerTest {
     }
 
     /**
-     * Test the private method 'createAuditLogEntry' with valid data.
+     * Test the private method 'createAuditLogEntry' for UNREGISTER_DEVICE operation.
      */
     @Test
-    public void testCreateAuditLogEntryWithValidData() throws Exception {
+    public void testCreateAuditLogEntryForUnregisterDevice() throws Exception {
 
         Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class
-                .getDeclaredMethod("createAuditLogEntry", String.class);
+                .getDeclaredMethod("createAuditLogEntry", String.class, DeviceHandlerAuditLogger.Operation.class,
+                        String.class);
         createAuditLogEntryMethod.setAccessible(true);
-        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(auditLogger, "testUserId");
+        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(
+                auditLogger, "testUserId", DeviceHandlerAuditLogger.Operation.UNREGISTER_DEVICE, "testDeviceId");
 
         Assert.assertNotNull(result);
         Assert.assertTrue(result.has("UserId"));
         Assert.assertEquals(result.getString("UserId"), "testUserId");
         Assert.assertTrue(result.has("UnregisteredAt"));
         Assert.assertTrue(result.getLong("UnregisteredAt") > 0);
+        Assert.assertFalse(result.has("RegisteredAt"));
+    }
+
+    /**
+     * Test the private method 'createAuditLogEntry' for REGISTER_DEVICE operation.
+     */
+    @Test
+    public void testCreateAuditLogEntryForRegisterDevice() throws Exception {
+
+        Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class
+                .getDeclaredMethod("createAuditLogEntry", String.class, DeviceHandlerAuditLogger.Operation.class,
+                        String.class);
+        createAuditLogEntryMethod.setAccessible(true);
+        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(
+                auditLogger, "testUserId", DeviceHandlerAuditLogger.Operation.REGISTER_DEVICE, "testDeviceId");
+
+        Assert.assertNotNull(result);
+        Assert.assertTrue(result.has("UserId"));
+        Assert.assertEquals(result.getString("UserId"), "testUserId");
+        Assert.assertTrue(result.has("RegisteredAt"));
+        Assert.assertTrue(result.getLong("RegisteredAt") > 0);
+        Assert.assertFalse(result.has("UnregisteredAt"));
+    }
+
+    /**
+     * Test the private method 'createAuditLogEntry' with a null userId.
+     */
+    @Test
+    public void testCreateAuditLogEntryWithNullUserId() throws Exception {
+
+        Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class
+                .getDeclaredMethod("createAuditLogEntry", String.class, DeviceHandlerAuditLogger.Operation.class,
+                        String.class);
+        createAuditLogEntryMethod.setAccessible(true);
+        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(
+                auditLogger, (Object) null, DeviceHandlerAuditLogger.Operation.UNREGISTER_DEVICE, "testDeviceId");
+
+        Assert.assertNotNull(result);
+        Assert.assertTrue(result.has("UserId"));
+        Assert.assertTrue(result.isNull("UserId"));
     }
 
     /**
@@ -187,5 +229,51 @@ public class DeviceHandlerAuditLoggerTest {
         getInitiatorIdMethod.setAccessible(true);
         String result = (String) getInitiatorIdMethod.invoke(auditLogger);
         Assert.assertEquals(result, LoggerUtils.Initiator.System.name());
+    }
+
+    /**
+     * Test the private method 'getInitiatorId' falls back to masked content when the resolved initiator is blank
+     * and the user is not the system user.
+     */
+    @Test
+    public void testGetInitiatorIdMaskedContent() throws Exception {
+
+        when(carbonContext.getUsername()).thenReturn("testUser");
+        when(carbonContext.getTenantDomain()).thenReturn("carbon.super");
+        mockedUserCoreUtil.when(() -> UserCoreUtil.addTenantDomainToEntry("testUser", "carbon.super"))
+                .thenReturn("testUser@carbon.super");
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantAwareUsername("testUser@carbon.super"))
+                .thenReturn("testUser");
+        mockedMultitenantUtils.when(() -> MultitenantUtils.getTenantDomain("testUser@carbon.super"))
+                .thenReturn("carbon.super");
+        mockedIdentityUtil.when(() -> IdentityUtil.getInitiatorId("testUser", "carbon.super"))
+                .thenReturn(null);
+
+        Method getInitiatorIdMethod = DeviceHandlerAuditLogger.class.getDeclaredMethod("getInitiatorId");
+        getInitiatorIdMethod.setAccessible(true);
+        String result = (String) getInitiatorIdMethod.invoke(auditLogger);
+        Assert.assertEquals(result, "masked-content");
+    }
+
+    /**
+     * Test the private method 'createAuditLogEntry' for UPDATE_DEVICE_MGT_CONFIG operation and a null deviceId.
+     */
+    @Test
+    public void testCreateAuditLogEntryForUpdateConfigWithNullDeviceId() throws Exception {
+
+        Method createAuditLogEntryMethod = DeviceHandlerAuditLogger.class
+                .getDeclaredMethod("createAuditLogEntry", String.class, DeviceHandlerAuditLogger.Operation.class,
+                        String.class);
+        createAuditLogEntryMethod.setAccessible(true);
+        JSONObject result = (JSONObject) createAuditLogEntryMethod.invoke(
+                auditLogger, "testUserId", DeviceHandlerAuditLogger.Operation.UPDATE_DEVICE_MGT_CONFIG, null);
+
+        Assert.assertNotNull(result);
+        Assert.assertTrue(result.has("UpdatedAt"));
+        Assert.assertTrue(result.getLong("UpdatedAt") > 0);
+        Assert.assertTrue(result.has("DeviceId"));
+        Assert.assertTrue(result.isNull("DeviceId"));
+        Assert.assertFalse(result.has("RegisteredAt"));
+        Assert.assertFalse(result.has("UnregisteredAt"));
     }
 }

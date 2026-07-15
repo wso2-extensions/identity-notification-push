@@ -18,9 +18,11 @@
 
 package org.wso2.carbon.identity.notification.push.device.handler.dao;
 
+import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerException;
 import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerServerException;
 import org.wso2.carbon.identity.notification.push.device.handler.model.Device;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -33,9 +35,9 @@ public interface DeviceDAO {
      *
      * @param device Device to be registered.
      * @param tenantId Tenant ID.
-     * @throws PushDeviceHandlerServerException PushDeviceHandlerServerException.
+     * @throws PushDeviceHandlerException PushDeviceHandlerException.
      */
-    void registerDevice(Device device, int tenantId) throws PushDeviceHandlerServerException;
+    void registerDevice(Device device, int tenantId) throws PushDeviceHandlerException;
 
     /**
      * Unregister a device.
@@ -67,10 +69,21 @@ public interface DeviceDAO {
      * Get a device by the user ID.
      *
      * @param userId User ID.
+     * @param tenantId Tenant ID.
      * @return Device.
      * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
      */
     Optional<Device> getDeviceByUserId(String userId, int tenantId) throws PushDeviceHandlerServerException;
+
+    /**
+     * Get all devices registered for a user.
+     *
+     * @param userId   User ID.
+     * @param tenantId Tenant ID.
+     * @return List of registered devices, empty list if none found.
+     * @throws PushDeviceHandlerServerException Push Device Handler Server Exception.
+     */
+    List<Device> getDevicesByUserId(String userId, int tenantId) throws PushDeviceHandlerServerException;
 
     /**
      * Get the public key of a device.

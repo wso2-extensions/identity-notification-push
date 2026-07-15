@@ -27,12 +27,16 @@ import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
+import org.wso2.carbon.identity.configuration.mgt.core.DefaultConfigResolver;
+import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceHandlerService;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceRegistrationContextManager;
 import org.wso2.carbon.identity.notification.push.device.handler.dao.DeviceDAO;
 import org.wso2.carbon.identity.notification.push.device.handler.dao.DeviceDAOImpl;
 import org.wso2.carbon.identity.notification.push.device.handler.impl.DeviceHandlerServiceImpl;
 import org.wso2.carbon.identity.notification.push.device.handler.impl.DeviceRegistrationContextManagerImpl;
+import org.wso2.carbon.identity.notification.push.device.handler.impl.PushDefaultConfigResolverImpl;
 import org.wso2.carbon.identity.notification.push.provider.PushProvider;
 import org.wso2.carbon.identity.notification.sender.tenant.config.NotificationSenderManagementService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
@@ -59,6 +63,8 @@ public class PushDeviceHandlerServiceComponent {
                     new DeviceHandlerServiceImpl(deviceRegistrationContextManager, deviceDAO);
             context.getBundleContext().registerService(
                     DeviceHandlerService.class.getName(), deviceHandlerService, null);
+            context.getBundleContext().registerService(
+                    DefaultConfigResolver.class.getName(), new PushDefaultConfigResolverImpl(), null);
         } catch (Throwable e) {
             LOG.error("Error occurred while activating Push Device Handler Service Component", e);
         }
@@ -130,5 +136,37 @@ public class PushDeviceHandlerServiceComponent {
     protected void unsetProvider(PushProvider provider) {
 
         PushDeviceHandlerDataHolder.getInstance().removePushProvider(provider.getName());
+    }
+
+    @Reference(
+            name = "configuration.manager",
+            service = ConfigurationManager.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetConfigurationManager")
+    protected void setConfigurationManager(ConfigurationManager configurationManager) {
+
+        PushDeviceHandlerDataHolder.getInstance().setConfigurationManager(configurationManager);
+    }
+
+    protected void unsetConfigurationManager(ConfigurationManager configurationManager) {
+
+        PushDeviceHandlerDataHolder.getInstance().setConfigurationManager(null);
+    }
+
+    @Reference(
+            name = "EventMgtService",
+            service = org.wso2.carbon.identity.event.services.IdentityEventService.class,
+            cardinality = ReferenceCardinality.MANDATORY,
+            policy = ReferencePolicy.DYNAMIC,
+            unbind = "unsetIdentityEventService")
+    protected void setIdentityEventService(IdentityEventService eventService) {
+
+        PushDeviceHandlerDataHolder.getInstance().setIdentityEventService(eventService);
+    }
+
+    protected void unsetIdentityEventService(IdentityEventService eventService) {
+
+        PushDeviceHandlerDataHolder.getInstance().setIdentityEventService(null);
     }
 }

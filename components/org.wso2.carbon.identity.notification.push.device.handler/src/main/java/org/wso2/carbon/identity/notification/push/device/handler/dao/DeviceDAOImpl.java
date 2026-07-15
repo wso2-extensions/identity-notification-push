@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025, WSO2 LLC. (http://www.wso2.com).
+ * Copyright (c) 2026, WSO2 LLC. (http://www.wso2.com).
  *
  * WSO2 LLC. licenses this file to you under the Apache License,
  * Version 2.0 (the "License"); you may not use this file except
@@ -21,14 +21,20 @@ package org.wso2.carbon.identity.notification.push.device.handler.dao;
 import org.wso2.carbon.database.utils.jdbc.NamedPreparedStatement;
 import org.wso2.carbon.identity.core.util.IdentityDatabaseUtil;
 import org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants;
+import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerClientException;
+import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerException;
 import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerServerException;
 import org.wso2.carbon.identity.notification.push.device.handler.model.Device;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_ID_ALREADY_REGISTERED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.SQLQueries.EDIT_DEVICE;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.SQLQueries.GET_DEVICE_BY_DEVICE_ID;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.SQLQueries.GET_DEVICE_BY_USER_ID;
@@ -42,7 +48,7 @@ import static org.wso2.carbon.identity.notification.push.device.handler.constant
 public class DeviceDAOImpl implements DeviceDAO {
 
     @Override
-    public void registerDevice(Device device, int tenantId) throws PushDeviceHandlerServerException {
+    public void registerDevice(Device device, int tenantId) throws PushDeviceHandlerException {
 
         Connection connection = IdentityDatabaseUtil.getDBConnection(true);
         try (NamedPreparedStatement statement = new NamedPreparedStatement(connection, REGISTER_DEVICE)) {
@@ -59,7 +65,13 @@ public class DeviceDAOImpl implements DeviceDAO {
             IdentityDatabaseUtil.commitTransaction(connection);
         } catch (SQLException e) {
             IdentityDatabaseUtil.rollbackTransaction(connection);
-            throw new PushDeviceHandlerServerException("Error occurred while registering the device.", e);
+            if (e instanceof SQLIntegrityConstraintViolationException) {
+                throw new PushDeviceHandlerClientException(
+                        ERROR_CODE_DEVICE_ID_ALREADY_REGISTERED.getCode(),
+                        ERROR_CODE_DEVICE_ID_ALREADY_REGISTERED.getMessage() + device.getDeviceId());
+            }
+            throw new PushDeviceHandlerServerException(
+                    "Error occurred while registering the device.", e);
         } finally {
             IdentityDatabaseUtil.closeConnection(connection);
         }
@@ -154,6 +166,39 @@ public class DeviceDAOImpl implements DeviceDAO {
         }
 
         return Optional.ofNullable(device);
+    }
+
+    @Override
+    public List<Device> getDevicesByUserId(String userId, int tenantId)
+            throws PushDeviceHandlerServerException {
+
+        List<Device> devices = new ArrayList<>();
+        Connection connection = IdentityDatabaseUtil.getDBConnection(true);
+        try (NamedPreparedStatement statement =
+                new NamedPreparedStatement(connection, GET_DEVICE_BY_USER_ID)) {
+            statement.setString(PushDeviceHandlerConstants.ColumnNames.USER_ID, userId);
+            statement.setInt(PushDeviceHandlerConstants.ColumnNames.TENANT_ID, tenantId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    Device device = new Device();
+                    device.setDeviceId(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.ID));
+                    device.setUserId(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.USER_ID));
+                    device.setDeviceName(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_NAME));
+                    device.setDeviceModel(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_MODEL));
+                    device.setDeviceToken(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_TOKEN));
+                    device.setDeviceHandle(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_HANDLE));
+                    device.setPublicKey(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PUBLIC_KEY));
+                    device.setProvider(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PROVIDER));
+                    devices.add(device);
+                }
+            }
+        } catch (SQLException e) {
+            throw new PushDeviceHandlerServerException(
+                    "Error occurred while retrieving devices for user.", e);
+        } finally {
+            IdentityDatabaseUtil.closeConnection(connection);
+        }
+        return devices;
     }
 
     @Override
