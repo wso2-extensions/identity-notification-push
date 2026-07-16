@@ -47,6 +47,9 @@ public class PushNotificationData {
     private final String ipAddress;
     private final String deviceOS;
     private final String browser;
+    private final String pushDeviceName;
+    private final String pushDeviceModel;
+    private final String registrationTime;
 
     private PushNotificationData(Builder builder) {
 
@@ -69,6 +72,9 @@ public class PushNotificationData {
         this.ipAddress = builder.ipAddress;
         this.deviceOS = builder.deviceOS;
         this.browser = builder.browser;
+        this.pushDeviceName = builder.pushDeviceName;
+        this.pushDeviceModel = builder.pushDeviceModel;
+        this.registrationTime = builder.registrationTime;
     }
 
     public String getNotificationTitle() {
@@ -161,6 +167,21 @@ public class PushNotificationData {
         return deviceOS;
     }
 
+    public String getPushDeviceName() {
+
+        return pushDeviceName;
+    }
+
+    public String getPushDeviceModel() {
+
+        return pushDeviceModel;
+    }
+
+    public String getRegistrationTime() {
+
+        return registrationTime;
+    }
+
     public Map<String, String> getAdditionalData() {
 
         Map<String, String> additionalData = new HashMap<>();
@@ -211,6 +232,15 @@ public class PushNotificationData {
         if (deviceId != null) {
             additionalData.put("deviceId", deviceId);
         }
+        if (pushDeviceName != null) {
+            additionalData.put("push-device-name", pushDeviceName);
+        }
+        if (pushDeviceModel != null) {
+            additionalData.put("push-device-model", pushDeviceModel);
+        }
+        if (registrationTime != null) {
+            additionalData.put("registration-time", registrationTime);
+        }
         return additionalData;
     }
 
@@ -250,6 +280,9 @@ public class PushNotificationData {
         private String ipAddress;
         private String deviceOS;
         private String browser;
+        private String pushDeviceName;
+        private String pushDeviceModel;
+        private String registrationTime;
 
         public Builder setNotificationTitle(String notificationTitle) {
 
@@ -362,6 +395,24 @@ public class PushNotificationData {
         public Builder setBrowser(String browser) {
 
             this.browser = browser;
+            return this;
+        }
+
+        public Builder setPushDeviceName(String pushDeviceName) {
+
+            this.pushDeviceName = pushDeviceName;
+            return this;
+        }
+
+        public Builder setPushDeviceModel(String pushDeviceModel) {
+
+            this.pushDeviceModel = pushDeviceModel;
+            return this;
+        }
+
+        public Builder setRegistrationTime(String registrationTime) {
+
+            this.registrationTime = registrationTime;
             return this;
         }
 

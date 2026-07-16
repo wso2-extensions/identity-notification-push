@@ -29,12 +29,19 @@ import org.mockito.MockitoAnnotations;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
-import org.testng.annotations.BeforeTest;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.wso2.carbon.context.CarbonContext;
 import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
+import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.Header;
+import org.wso2.carbon.identity.core.context.model.Request;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.event.IdentityEventException;
+import org.wso2.carbon.identity.event.services.IdentityEventService;
+import org.wso2.carbon.identity.governance.service.notification.NotificationChannels;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceRegistrationContextManager;
 import org.wso2.carbon.identity.notification.push.device.handler.dao.DeviceDAO;
 import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerClientException;
@@ -60,6 +67,7 @@ import org.wso2.carbon.identity.organization.management.service.util.Organizatio
 import org.wso2.carbon.user.core.UserRealm;
 import org.wso2.carbon.user.core.UserStoreException;
 import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
+import org.wso2.carbon.user.core.common.User;
 import org.wso2.carbon.user.core.util.UserCoreUtil;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
@@ -189,7 +197,7 @@ public class DeviceHandlerServiceImplTest {
         }
     }
 
-    @BeforeTest
+    @BeforeMethod
     void setUp() {
 
         MockitoAnnotations.openMocks(this);
@@ -248,6 +256,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -340,6 +350,8 @@ public class DeviceHandlerServiceImplTest {
         try (
                 MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
                         Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
         ) {
 
             mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
@@ -349,6 +361,12 @@ public class DeviceHandlerServiceImplTest {
             AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
             when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
             when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn(null);
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             Assert.assertThrows(PushDeviceHandlerServerException.class, () -> {
                 deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
@@ -369,6 +387,8 @@ public class DeviceHandlerServiceImplTest {
         try (
                 MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
                         Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
         ) {
 
             mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
@@ -379,8 +399,14 @@ public class DeviceHandlerServiceImplTest {
             when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
             when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
 
-            Optional<Device> device = Optional.of(new Device());
-            when(deviceDAO.getDeviceByUserId(anyString(), anyInt())).thenReturn(device);
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
+
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt()))
+                    .thenReturn(java.util.Collections.singletonList(new Device()));
 
             Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
                 deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
@@ -463,6 +489,44 @@ public class DeviceHandlerServiceImplTest {
             Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
                 deviceHandlerService.getDeviceByUserId("testUserId", "carbon.super");
             });
+        }
+    }
+
+    @Test
+    public void testGetDevicesByUserId() throws PushDeviceHandlerException {
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+        ) {
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+
+            Device deviceObj = new Device();
+            deviceObj.setDeviceId("1234567890");
+            List<Device> deviceList = new ArrayList<>();
+            deviceList.add(deviceObj);
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt())).thenReturn(deviceList);
+
+            List<Device> result = deviceHandlerService.getDevicesByUserId("testUserId", "carbon.super");
+            Assert.assertNotNull(result);
+            Assert.assertEquals(result.size(), 1);
+        }
+    }
+
+    @Test
+    public void testGetDevicesByUserIdWhenNoDevices() throws PushDeviceHandlerException {
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+        ) {
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt())).thenReturn(new ArrayList<>());
+
+            // No registered devices is a valid result and must return an empty list, not throw.
+            List<Device> result = deviceHandlerService.getDevicesByUserId("testUserId", "carbon.super");
+            Assert.assertNotNull(result);
+            Assert.assertTrue(result.isEmpty());
         }
     }
 
@@ -1097,6 +1161,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1128,6 +1194,170 @@ public class DeviceHandlerServiceImplTest {
             Assert.assertThrows(PushDeviceHandlerClientException.class, () -> {
                 deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
             });
+        }
+    }
+
+    @Test
+    public void testRegisterDeviceWithAlreadyRegisteredDeviceId()
+            throws Exception {
+
+        RegistrationRequest registrationRequest = createRegistrationRequest();
+        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
+        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
+                .thenReturn(deviceRegistrationContext);
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+        ) {
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            UserRealm userRealm = mock(UserRealm.class);
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getRealm(anyString(), anyString()))
+                    .thenReturn(userRealm);
+            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
+            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
+            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
+
+            // Multiple device enrollment disabled, so a user that already has a registered device
+            // must not be allowed to register another one.
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
+                    new org.wso2.carbon.identity.configuration.mgt.core.model.Resource();
+            List<org.wso2.carbon.identity.configuration.mgt.core.model.Attribute> attributes = new ArrayList<>();
+            attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                    "enableMultipleDeviceEnrollment", "false"));
+            attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                    "maximumDeviceLimit", "1"));
+            resource.setAttributes(attributes);
+            when(configManager.getResource(anyString(), anyString(), anyBoolean())).thenReturn(resource);
+
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt()))
+                    .thenReturn(java.util.Collections.singletonList(new Device()));
+
+            Assert.assertThrows(PushDeviceHandlerClientException.class,
+                    () -> deviceHandlerService.registerDevice(registrationRequest, "carbon.super"));
+        }
+    }
+
+    @Test
+    public void testRegisterDeviceWhenMultiDeviceEnabledAndLimitReached()
+            throws Exception {
+
+        RegistrationRequest registrationRequest = createRegistrationRequest();
+        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
+        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
+                .thenReturn(deviceRegistrationContext);
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+        ) {
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            UserRealm userRealm = mock(UserRealm.class);
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getRealm(anyString(), anyString()))
+                    .thenReturn(userRealm);
+            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
+            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
+            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
+
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
+                    new org.wso2.carbon.identity.configuration.mgt.core.model.Resource();
+            List<org.wso2.carbon.identity.configuration.mgt.core.model.Attribute> attributes = new ArrayList<>();
+            attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                    "enableMultipleDeviceEnrollment", "true"));
+            attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                    "maximumDeviceLimit", "2"));
+            resource.setAttributes(attributes);
+            when(configManager.getResource(anyString(), anyString(), anyBoolean())).thenReturn(resource);
+
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt()))
+                    .thenReturn(java.util.Arrays.asList(new Device(), new Device()));
+
+            Assert.assertThrows(PushDeviceHandlerClientException.class,
+                    () -> deviceHandlerService.registerDevice(registrationRequest, "carbon.super"));
+        }
+    }
+
+    @Test
+    public void testRegisterDeviceWhenMultiDeviceEnabledAndUnderLimit()
+            throws Exception {
+
+        RegistrationRequest registrationRequest = createRegistrationRequest();
+        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
+        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
+                .thenReturn(deviceRegistrationContext);
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+        ) {
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            UserRealm userRealm = mock(UserRealm.class);
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getRealm(anyString(), anyString()))
+                    .thenReturn(userRealm);
+            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
+            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
+            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
+
+            org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
+                    new org.wso2.carbon.identity.configuration.mgt.core.model.Resource();
+            List<org.wso2.carbon.identity.configuration.mgt.core.model.Attribute> attributes = new ArrayList<>();
+            attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                    "enableMultipleDeviceEnrollment", "true"));
+            attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                    "maximumDeviceLimit", "5"));
+            resource.setAttributes(attributes);
+            when(configManager.getResource(anyString(), anyString(), anyBoolean())).thenReturn(resource);
+
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt()))
+                    .thenReturn(java.util.Collections.singletonList(new Device()));
+
+            NotificationSenderManagementService notificationSenderManagementService =
+                    mock(NotificationSenderManagementService.class);
+            when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
+                    .thenReturn(notificationSenderManagementService);
+            PushSenderDTO pushSenderDTO = new PushSenderDTO();
+            pushSenderDTO.setName("FCM_PushPublisher");
+            pushSenderDTO.setProvider("FCM");
+            pushSenderDTO.setProviderId("fcm-provider-id");
+            List<PushSenderDTO> pushSenders = new ArrayList<>();
+            pushSenders.add(pushSenderDTO);
+            when(notificationSenderManagementService.getPushSenders(anyBoolean()))
+                    .thenReturn(pushSenders);
+
+            FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
+            when(pushDeviceHandlerDataHolder.getPushProvider(anyString())).thenReturn(fcmPushProvider);
+            when(fcmPushProvider.getName()).thenReturn("FCM");
+            doNothing().when(fcmPushProvider).registerDevice(any(), any());
+            doNothing().when(deviceDAO).registerDevice(any(), anyInt());
+
+            Device registeredDevice = deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
+
+            Assert.assertNotNull(registeredDevice);
+            Assert.assertTrue(deviceRegistrationContext.isRegistered());
         }
     }
 
@@ -1179,10 +1409,13 @@ public class DeviceHandlerServiceImplTest {
             when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
 
             when(deviceDAO.getDeviceByUserId(anyString(), anyInt())).thenReturn(Optional.empty());
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1244,6 +1477,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(PushDeviceHandlerDataHolder::getInstance)
                     .thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1303,6 +1538,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(PushDeviceHandlerDataHolder::getInstance)
                     .thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1360,6 +1597,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(PushDeviceHandlerDataHolder::getInstance)
                     .thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1424,10 +1663,13 @@ public class DeviceHandlerServiceImplTest {
             when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
 
             when(deviceDAO.getDeviceByUserId(anyString(), anyInt())).thenReturn(Optional.empty());
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1503,6 +1745,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1559,6 +1803,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1611,10 +1857,13 @@ public class DeviceHandlerServiceImplTest {
             when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
 
             when(deviceDAO.getDeviceByUserId(anyString(), anyInt())).thenReturn(Optional.empty());
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1688,6 +1937,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1747,6 +1998,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1756,6 +2009,7 @@ public class DeviceHandlerServiceImplTest {
             // Return empty config to simulate no default provider configured
             when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenReturn(new HashMap<>());
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Mock single push sender available
             PushSenderDTO pushSenderDTO = new PushSenderDTO();
@@ -1819,6 +2073,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1828,6 +2084,7 @@ public class DeviceHandlerServiceImplTest {
             // Return empty config to simulate no default provider configured
             when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenReturn(new HashMap<>());
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Return empty list of push senders
             when(notificationSenderManagementService.getPushSenders(anyBoolean()))
@@ -1875,6 +2132,8 @@ public class DeviceHandlerServiceImplTest {
             PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
             mockedPushDeviceHandlerDataHolder.when(
                     PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
 
             NotificationSenderManagementService notificationSenderManagementService =
                     mock(NotificationSenderManagementService.class);
@@ -1884,6 +2143,7 @@ public class DeviceHandlerServiceImplTest {
             // Return empty config to simulate no default provider configured
             when(notificationSenderManagementService.getNotificationSenderConfigurations(anyString(), anyBoolean()))
                     .thenReturn(new HashMap<>());
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt())).thenReturn(new ArrayList<>());
 
             // Return multiple push senders
             PushSenderDTO pushSenderDTO1 = new PushSenderDTO();
@@ -1898,10 +2158,328 @@ public class DeviceHandlerServiceImplTest {
             when(notificationSenderManagementService.getPushSenders(anyBoolean()))
                     .thenReturn(pushSenders);
 
-            Assert.assertThrows(PushDeviceHandlerServerException.class, () -> {
-                deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
-            });
+            Assert.assertThrows(PushDeviceHandlerServerException.class,
+                    () -> deviceHandlerService.registerDevice(registrationRequest, "carbon.super"));
         }
+    }
+
+    @Test
+    public void testRegisterDeviceTriggersRegistrationNotificationsWhenEnabled() throws Exception {
+
+        RegistrationRequest registrationRequest = createRegistrationRequest();
+        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
+        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
+                .thenReturn(deviceRegistrationContext);
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+                MockedStatic<IdentityContext> mockedIdentityContext =
+                        Mockito.mockStatic(IdentityContext.class);
+        ) {
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            UserRealm userRealm = mock(UserRealm.class);
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getRealm(anyString(), anyString()))
+                    .thenReturn(userRealm);
+            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
+            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
+            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
+
+            User user = mock(User.class);
+            when(user.getUserID()).thenReturn("testUserId");
+            when(user.getUsername()).thenReturn("testUser");
+            when(user.getUserStoreDomain()).thenReturn("PRIMARY");
+            Map<String, String> userAttributes = new HashMap<>();
+            userAttributes.put(NotificationChannels.EMAIL_CHANNEL.getClaimUri(), "testuser@wso2.com");
+            when(user.getAttributes()).thenReturn(userAttributes);
+            when(abstractUserStoreManager.getUserWithID(anyString(), any(String[].class), anyString()))
+                    .thenReturn(user);
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
+            when(configManager.getResource(anyString(), anyString(), anyBoolean()))
+                    .thenReturn(createDeviceMgtConfigResource("true", "5", "true", "EMAIL,PUSH_NOTIFICATION"));
+
+            Device existingDevice = new Device();
+            existingDevice.setDeviceId("existing-device-id");
+            existingDevice.setProvider("FCM");
+            existingDevice.setDeviceToken("existing-device-token");
+            existingDevice.setDeviceHandle("existing-device-handle");
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt()))
+                    .thenReturn(java.util.Collections.singletonList(existingDevice));
+
+            mockPushSenderAndProvider(pushDeviceHandlerDataHolder);
+            doNothing().when(deviceDAO).registerDevice(any(), anyInt());
+
+            IdentityEventService identityEventService = mock(IdentityEventService.class);
+            when(pushDeviceHandlerDataHolder.getIdentityEventService()).thenReturn(identityEventService);
+            doNothing().when(identityEventService).handleEvent(any());
+
+            IdentityContext identityContext = mock(IdentityContext.class);
+            mockedIdentityContext.when(IdentityContext::getThreadLocalIdentityContext)
+                    .thenReturn(identityContext);
+            Request request = mock(Request.class);
+            List<Header> headers = new ArrayList<>();
+            headers.add(new Header("User-Agent", java.util.Collections.singletonList("test-agent")));
+            headers.add(new Header("X-Forwarded-For",
+                    java.util.Collections.singletonList("10.0.0.1, 192.168.1.1")));
+            when(request.getHeaders()).thenReturn(headers);
+            when(identityContext.getRequest()).thenReturn(request);
+
+            Device registeredDevice = deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
+
+            Assert.assertNotNull(registeredDevice);
+            Assert.assertTrue(deviceRegistrationContext.isRegistered());
+            // One email notification plus one push notification to the existing device.
+            verify(identityEventService, times(2)).handleEvent(any());
+        }
+    }
+
+    @Test
+    public void testRegisterDeviceSkipsNotificationsWhenEmailClaimNotAvailable() throws Exception {
+
+        RegistrationRequest registrationRequest = createRegistrationRequest();
+        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
+        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
+                .thenReturn(deviceRegistrationContext);
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+        ) {
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            UserRealm userRealm = mock(UserRealm.class);
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getRealm(anyString(), anyString()))
+                    .thenReturn(userRealm);
+            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
+            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
+            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
+            // The resolved user has no email claim, so the email notification must be
+            // skipped and registration must still succeed.
+            User user = mock(User.class);
+            when(user.getUserID()).thenReturn("testUserId");
+            when(user.getUsername()).thenReturn("testUser");
+            when(user.getUserStoreDomain()).thenReturn("PRIMARY");
+            when(user.getAttributes()).thenReturn(new HashMap<>());
+            when(abstractUserStoreManager.getUserWithID(anyString(), any(String[].class), anyString()))
+                    .thenReturn(user);
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
+            when(configManager.getResource(anyString(), anyString(), anyBoolean()))
+                    .thenReturn(createDeviceMgtConfigResource("true", "5", "true", "EMAIL,PUSH_NOTIFICATION"));
+
+            // No previously registered devices, so the push notification is skipped too.
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt())).thenReturn(new ArrayList<>());
+
+            mockPushSenderAndProvider(pushDeviceHandlerDataHolder);
+            doNothing().when(deviceDAO).registerDevice(any(), anyInt());
+
+            IdentityEventService identityEventService = mock(IdentityEventService.class);
+            when(pushDeviceHandlerDataHolder.getIdentityEventService()).thenReturn(identityEventService);
+
+            Device registeredDevice = deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
+
+            Assert.assertNotNull(registeredDevice);
+            Assert.assertTrue(deviceRegistrationContext.isRegistered());
+            verify(identityEventService, times(0)).handleEvent(any());
+        }
+    }
+
+    @Test
+    public void testRegisterDeviceSucceedsWhenNotificationDeliveryFails() throws Exception {
+
+        RegistrationRequest registrationRequest = createRegistrationRequest();
+        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
+        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
+                .thenReturn(deviceRegistrationContext);
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+                MockedStatic<IdentityContext> mockedIdentityContext =
+                        Mockito.mockStatic(IdentityContext.class);
+        ) {
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            UserRealm userRealm = mock(UserRealm.class);
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getRealm(anyString(), anyString()))
+                    .thenReturn(userRealm);
+            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
+            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
+            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
+
+            User user = mock(User.class);
+            when(user.getUserID()).thenReturn("testUserId");
+            when(user.getUsername()).thenReturn("testUser");
+            when(user.getUserStoreDomain()).thenReturn("PRIMARY");
+            Map<String, String> userAttributes = new HashMap<>();
+            userAttributes.put(NotificationChannels.EMAIL_CHANNEL.getClaimUri(), "testuser@wso2.com");
+            when(user.getAttributes()).thenReturn(userAttributes);
+            when(abstractUserStoreManager.getUserWithID(anyString(), any(String[].class), anyString()))
+                    .thenReturn(user);
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
+            when(configManager.getResource(anyString(), anyString(), anyBoolean()))
+                    .thenReturn(createDeviceMgtConfigResource("true", "5", "true", "EMAIL,PUSH_NOTIFICATION"));
+
+            Device existingDevice = new Device();
+            existingDevice.setDeviceId("existing-device-id");
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt()))
+                    .thenReturn(java.util.Collections.singletonList(existingDevice));
+
+            mockPushSenderAndProvider(pushDeviceHandlerDataHolder);
+            doNothing().when(deviceDAO).registerDevice(any(), anyInt());
+
+            IdentityEventService identityEventService = mock(IdentityEventService.class);
+            when(pushDeviceHandlerDataHolder.getIdentityEventService()).thenReturn(identityEventService);
+            doThrow(new IdentityEventException("Notification delivery failed."))
+                    .when(identityEventService).handleEvent(any());
+
+            // No inbound request captured in the identity context; the IP address
+            // cannot be resolved and the notification is sent without it.
+            IdentityContext identityContext = mock(IdentityContext.class);
+            mockedIdentityContext.when(IdentityContext::getThreadLocalIdentityContext)
+                    .thenReturn(identityContext);
+            when(identityContext.getRequest()).thenReturn(null);
+
+            Device registeredDevice = deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
+
+            Assert.assertNotNull(registeredDevice);
+            Assert.assertTrue(deviceRegistrationContext.isRegistered());
+            verify(identityEventService, times(2)).handleEvent(any());
+        }
+    }
+
+    @Test
+    public void testRegisterDeviceEmitsDiagnosticLogsWhenNotificationDeliveryFails() throws Exception {
+
+        RegistrationRequest registrationRequest = createRegistrationRequest();
+        DeviceRegistrationContext deviceRegistrationContext = createDeviceRegistrationContext();
+        when(deviceRegistrationContextManager.getContext(anyString(), anyString()))
+                .thenReturn(deviceRegistrationContext);
+
+        try (
+                MockedStatic<IdentityTenantUtil> mockedIdentityTenantUtil =
+                        Mockito.mockStatic(IdentityTenantUtil.class);
+                MockedStatic<PushDeviceHandlerDataHolder> mockedPushDeviceHandlerDataHolder =
+                        Mockito.mockStatic(PushDeviceHandlerDataHolder.class);
+                MockedStatic<IdentityContext> mockedIdentityContext =
+                        Mockito.mockStatic(IdentityContext.class);
+        ) {
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getTenantId(any())).thenReturn(-1234);
+            UserRealm userRealm = mock(UserRealm.class);
+            mockedIdentityTenantUtil.when(() -> IdentityTenantUtil.getRealm(anyString(), anyString()))
+                    .thenReturn(userRealm);
+            AbstractUserStoreManager abstractUserStoreManager = mock(AbstractUserStoreManager.class);
+            when(userRealm.getUserStoreManager()).thenReturn(abstractUserStoreManager);
+            when(abstractUserStoreManager.getUserIDFromUserName(anyString())).thenReturn("testUserId");
+
+            // Enable diagnostic logs so the notification failure paths emit diagnostic log events.
+            mockedLoggerUtils.when(LoggerUtils::isDiagnosticLogsEnabled).thenReturn(true);
+
+            User user = mock(User.class);
+            when(user.getUserID()).thenReturn("testUserId");
+            when(user.getUsername()).thenReturn("testUser");
+            when(user.getUserStoreDomain()).thenReturn("PRIMARY");
+            Map<String, String> userAttributes = new HashMap<>();
+            userAttributes.put(NotificationChannels.EMAIL_CHANNEL.getClaimUri(), "testuser@wso2.com");
+            when(user.getAttributes()).thenReturn(userAttributes);
+            when(abstractUserStoreManager.getUserWithID(anyString(), any(String[].class), anyString()))
+                    .thenReturn(user);
+
+            PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder = mock(PushDeviceHandlerDataHolder.class);
+            mockedPushDeviceHandlerDataHolder.when(
+                    PushDeviceHandlerDataHolder::getInstance).thenReturn(pushDeviceHandlerDataHolder);
+            ConfigurationManager configManager = mock(ConfigurationManager.class);
+            when(pushDeviceHandlerDataHolder.getConfigurationManager()).thenReturn(configManager);
+            when(configManager.getResource(anyString(), anyString(), anyBoolean()))
+                    .thenReturn(createDeviceMgtConfigResource("true", "5", "true", "EMAIL,PUSH_NOTIFICATION"));
+
+            Device existingDevice = new Device();
+            existingDevice.setDeviceId("existing-device-id");
+            when(deviceDAO.getDevicesByUserId(anyString(), anyInt()))
+                    .thenReturn(java.util.Collections.singletonList(existingDevice));
+
+            mockPushSenderAndProvider(pushDeviceHandlerDataHolder);
+            doNothing().when(deviceDAO).registerDevice(any(), anyInt());
+
+            IdentityEventService identityEventService = mock(IdentityEventService.class);
+            when(pushDeviceHandlerDataHolder.getIdentityEventService()).thenReturn(identityEventService);
+            doThrow(new IdentityEventException("Notification delivery failed."))
+                    .when(identityEventService).handleEvent(any());
+
+            // An inbound request is captured in the identity context so the IP address
+            // input parameter is included in the emitted diagnostic logs.
+            IdentityContext identityContext = mock(IdentityContext.class);
+            mockedIdentityContext.when(IdentityContext::getThreadLocalIdentityContext)
+                    .thenReturn(identityContext);
+            org.wso2.carbon.identity.core.context.model.Request request =
+                    mock(org.wso2.carbon.identity.core.context.model.Request.class);
+            when(request.getIpAddress()).thenReturn("10.0.0.1");
+            when(identityContext.getRequest()).thenReturn(request);
+
+            Device registeredDevice = deviceHandlerService.registerDevice(registrationRequest, "carbon.super");
+
+            Assert.assertNotNull(registeredDevice);
+            Assert.assertTrue(deviceRegistrationContext.isRegistered());
+            verify(identityEventService, times(2)).handleEvent(any());
+        }
+    }
+
+    private void mockPushSenderAndProvider(PushDeviceHandlerDataHolder pushDeviceHandlerDataHolder)
+            throws NotificationSenderManagementException, PushProviderException {
+
+        NotificationSenderManagementService notificationSenderManagementService =
+                mock(NotificationSenderManagementService.class);
+        when(pushDeviceHandlerDataHolder.getNotificationSenderManagementService())
+                .thenReturn(notificationSenderManagementService);
+        PushSenderDTO pushSenderDTO = new PushSenderDTO();
+        pushSenderDTO.setName("FCM_PushPublisher");
+        pushSenderDTO.setProvider("FCM");
+        pushSenderDTO.setProviderId("fcm-provider-id");
+        List<PushSenderDTO> pushSenders = new ArrayList<>();
+        pushSenders.add(pushSenderDTO);
+        when(notificationSenderManagementService.getPushSenders(anyBoolean())).thenReturn(pushSenders);
+
+        FCMPushProvider fcmPushProvider = mock(FCMPushProvider.class);
+        when(pushDeviceHandlerDataHolder.getPushProvider(anyString())).thenReturn(fcmPushProvider);
+        when(fcmPushProvider.getName()).thenReturn("FCM");
+        doNothing().when(fcmPushProvider).registerDevice(any(), any());
+    }
+
+    private org.wso2.carbon.identity.configuration.mgt.core.model.Resource createDeviceMgtConfigResource(
+            String enableMultipleDeviceEnrollment, String maximumDeviceLimit,
+            String enableNotifications, String notificationChannels) {
+
+        org.wso2.carbon.identity.configuration.mgt.core.model.Resource resource =
+                new org.wso2.carbon.identity.configuration.mgt.core.model.Resource();
+        List<org.wso2.carbon.identity.configuration.mgt.core.model.Attribute> attributes = new ArrayList<>();
+        attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                "enableMultipleDeviceEnrollment", enableMultipleDeviceEnrollment));
+        attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                "maximumDeviceLimit", maximumDeviceLimit));
+        attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                "enableDeviceRegistrationNotifications", enableNotifications));
+        attributes.add(new org.wso2.carbon.identity.configuration.mgt.core.model.Attribute(
+                "deviceRegistrationNotificationChannels", notificationChannels));
+        resource.setAttributes(attributes);
+        return resource;
     }
 
     private RegistrationRequest createRegistrationRequest() {

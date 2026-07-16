@@ -220,6 +220,133 @@ public class DeviceDAOImplTest {
     }
 
     @Test
+    public void testGetDevicesByUserId() throws Exception {
+
+        String userId = "user";
+        int tenantId = 1;
+        Device device = new Device("id", "did", "name", "model", "token", "handle", "provider", "key");
+
+        try (MockedStatic<IdentityDatabaseUtil> mockedDbUtil = Mockito.mockStatic(IdentityDatabaseUtil.class)) {
+            Connection connection = Mockito.mock(Connection.class);
+            NamedPreparedStatement statement = Mockito.mock(NamedPreparedStatement.class);
+            ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+            mockedDbUtil.when(() -> IdentityDatabaseUtil.getDBConnection(true)).thenReturn(connection);
+            Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
+            Mockito.when(statement.executeQuery()).thenReturn(resultSet);
+            // Two devices then end of result set.
+            Mockito.when(resultSet.next()).thenReturn(true, true, false);
+            Mockito.when(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.ID))
+                    .thenReturn(device.getDeviceId());
+            Mockito.when(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.USER_ID))
+                    .thenReturn(device.getUserId());
+            Mockito.when(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_NAME))
+                    .thenReturn(device.getDeviceName());
+            Mockito.when(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_MODEL))
+                    .thenReturn(device.getDeviceModel());
+            Mockito.when(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_TOKEN))
+                    .thenReturn(device.getDeviceToken());
+            Mockito.when(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.DEVICE_HANDLE))
+                    .thenReturn(device.getDeviceHandle());
+            Mockito.when(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PUBLIC_KEY))
+                    .thenReturn(device.getPublicKey());
+            Mockito.when(resultSet.getString(PushDeviceHandlerConstants.ColumnNames.PROVIDER))
+                    .thenReturn(device.getProvider());
+
+            java.util.List<Device> result = deviceDAO.getDevicesByUserId(userId, tenantId);
+
+            Assert.assertEquals(result.size(), 2);
+            Assert.assertEquals(result.get(0).getDeviceId(), device.getDeviceId());
+        }
+    }
+
+    @Test
+    public void testGetDevicesByUserIdEmpty() throws Exception {
+
+        String userId = "user";
+        int tenantId = 1;
+
+        try (MockedStatic<IdentityDatabaseUtil> mockedDbUtil = Mockito.mockStatic(IdentityDatabaseUtil.class)) {
+            Connection connection = Mockito.mock(Connection.class);
+            NamedPreparedStatement statement = Mockito.mock(NamedPreparedStatement.class);
+            ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+            mockedDbUtil.when(() -> IdentityDatabaseUtil.getDBConnection(true)).thenReturn(connection);
+            Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
+            Mockito.when(statement.executeQuery()).thenReturn(resultSet);
+            Mockito.when(resultSet.next()).thenReturn(false);
+
+            java.util.List<Device> result = deviceDAO.getDevicesByUserId(userId, tenantId);
+
+            Assert.assertTrue(result.isEmpty());
+        }
+    }
+
+    @Test
+    public void testGetDeviceNotFound() throws Exception {
+
+        String deviceId = "id";
+
+        try (MockedStatic<IdentityDatabaseUtil> mockedDbUtil = Mockito.mockStatic(IdentityDatabaseUtil.class)) {
+            Connection connection = Mockito.mock(Connection.class);
+            NamedPreparedStatement statement = Mockito.mock(NamedPreparedStatement.class);
+            ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+            mockedDbUtil.when(() -> IdentityDatabaseUtil.getDBConnection(true)).thenReturn(connection);
+            Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
+            Mockito.when(statement.executeQuery()).thenReturn(resultSet);
+            Mockito.when(resultSet.next()).thenReturn(false);
+
+            Optional<Device> result = deviceDAO.getDevice(deviceId);
+
+            Assert.assertFalse(result.isPresent());
+        }
+    }
+
+    @Test
+    public void testGetDeviceByUserIdNotFound() throws Exception {
+
+        String userId = "user";
+        int tenantId = 1;
+
+        try (MockedStatic<IdentityDatabaseUtil> mockedDbUtil = Mockito.mockStatic(IdentityDatabaseUtil.class)) {
+            Connection connection = Mockito.mock(Connection.class);
+            NamedPreparedStatement statement = Mockito.mock(NamedPreparedStatement.class);
+            ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+            mockedDbUtil.when(() -> IdentityDatabaseUtil.getDBConnection(true)).thenReturn(connection);
+            Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
+            Mockito.when(statement.executeQuery()).thenReturn(resultSet);
+            Mockito.when(resultSet.next()).thenReturn(false);
+
+            Optional<Device> result = deviceDAO.getDeviceByUserId(userId, tenantId);
+
+            Assert.assertFalse(result.isPresent());
+        }
+    }
+
+    @Test
+    public void testGetPublicKeyNotFound() throws Exception {
+
+        String deviceId = "id";
+
+        try (MockedStatic<IdentityDatabaseUtil> mockedDbUtil = Mockito.mockStatic(IdentityDatabaseUtil.class)) {
+            Connection connection = Mockito.mock(Connection.class);
+            NamedPreparedStatement statement = Mockito.mock(NamedPreparedStatement.class);
+            ResultSet resultSet = Mockito.mock(ResultSet.class);
+
+            mockedDbUtil.when(() -> IdentityDatabaseUtil.getDBConnection(true)).thenReturn(connection);
+            Mockito.when(connection.prepareStatement(Mockito.anyString())).thenReturn(statement);
+            Mockito.when(statement.executeQuery()).thenReturn(resultSet);
+            Mockito.when(resultSet.next()).thenReturn(false);
+
+            Optional<String> result = deviceDAO.getPublicKey(deviceId);
+
+            Assert.assertFalse(result.isPresent());
+        }
+    }
+
+    @Test
     public void testGetPublicKey() throws Exception {
 
         String deviceId = "id";

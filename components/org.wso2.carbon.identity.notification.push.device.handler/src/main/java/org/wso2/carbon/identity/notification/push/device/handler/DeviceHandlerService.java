@@ -23,6 +23,9 @@ import org.wso2.carbon.identity.notification.push.device.handler.model.Device;
 import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationDiscoveryData;
 import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationRequest;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Device Handler interface.
  */
@@ -60,6 +63,7 @@ public interface DeviceHandlerService {
      * Remove all devices of a registered user.
      *
      * @param userId User ID.
+     * @param tenantDomain Tenant Domain.
      * @throws PushDeviceHandlerException Push Device Handler Exception.
      */
     void unregisterDeviceByUserId(String userId, String tenantDomain) throws PushDeviceHandlerException;
@@ -77,10 +81,24 @@ public interface DeviceHandlerService {
      * Get a device by the user ID.
      *
      * @param userId User ID.
+     * @param tenantDomain Tenant Domain.
      * @return Device.
      * @throws PushDeviceHandlerException Push Device Handler Exception.
      */
     Device getDeviceByUserId(String userId, String tenantDomain) throws PushDeviceHandlerException;
+
+    /**
+     * Get devices by the user ID.
+     *
+     * @param userId       User ID.
+     * @param tenantDomain Tenant Domain.
+     * @return Device.
+     * @throws PushDeviceHandlerException Push Device Handler Exception.
+     */
+    default List<Device> getDevicesByUserId(String userId, String tenantDomain) throws PushDeviceHandlerException {
+
+        return Collections.emptyList();
+    }
 
     /**
      * Edit the name of a registered device.
@@ -111,5 +129,4 @@ public interface DeviceHandlerService {
      * @throws PushDeviceHandlerException Push Device Handler Exception.
      */
     String getPublicKey(String deviceId) throws PushDeviceHandlerException;
-
 }

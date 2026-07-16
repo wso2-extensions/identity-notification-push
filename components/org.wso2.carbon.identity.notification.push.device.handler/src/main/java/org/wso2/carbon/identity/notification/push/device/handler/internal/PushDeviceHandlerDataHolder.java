@@ -18,6 +18,8 @@
 
 package org.wso2.carbon.identity.notification.push.device.handler.internal;
 
+import org.wso2.carbon.identity.configuration.mgt.core.ConfigurationManager;
+import org.wso2.carbon.identity.event.services.IdentityEventService;
 import org.wso2.carbon.identity.notification.push.provider.PushProvider;
 import org.wso2.carbon.identity.notification.sender.tenant.config.NotificationSenderManagementService;
 import org.wso2.carbon.identity.organization.management.service.OrganizationManager;
@@ -36,6 +38,8 @@ public class PushDeviceHandlerDataHolder {
     private RealmService realmService;
     private OrganizationManager organizationManager;
     private NotificationSenderManagementService notificationSenderManagementService;
+    private ConfigurationManager configurationManager;
+    private IdentityEventService identityEventService;
 
     private PushDeviceHandlerDataHolder() {
         
@@ -137,5 +141,43 @@ public class PushDeviceHandlerDataHolder {
     public PushProvider getPushProvider(String providerName) {
 
         return pushNotificationProviders.get(providerName);
+    }
+
+    /**
+     * Get the ConfigurationManager.
+     *
+     * @return ConfigurationManager instance.
+     */
+    public ConfigurationManager getConfigurationManager() {
+
+        return configurationManager;
+    }
+
+    /**
+     * Set the ConfigurationManager.
+     *
+     * @param configurationManager ConfigurationManager instance.
+     */
+    public void setConfigurationManager(ConfigurationManager configurationManager) {
+
+        this.configurationManager = configurationManager;
+    }
+
+    /**
+     * Get the IdentityEventService.
+     * @return
+     */
+    public IdentityEventService getIdentityEventService() {
+
+        return identityEventService;
+    }
+
+    /**
+     * Set the identityEventService.
+     * @param identityEventService
+     */
+    public void setIdentityEventService(IdentityEventService identityEventService) {
+
+        this.identityEventService = identityEventService;
     }
 }

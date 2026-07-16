@@ -18,17 +18,26 @@
 
 package org.wso2.carbon.identity.notification.push.device.handler.impl;
 
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.osgi.annotation.bundle.Capability;
 import org.wso2.carbon.identity.base.IdentityException;
+import org.wso2.carbon.identity.central.log.mgt.utils.LoggerUtils;
+import org.wso2.carbon.identity.core.context.IdentityContext;
+import org.wso2.carbon.identity.core.context.model.Request;
 import org.wso2.carbon.identity.core.util.IdentityTenantUtil;
 import org.wso2.carbon.identity.core.util.IdentityUtil;
+import org.wso2.carbon.identity.event.IdentityEventConstants;
+import org.wso2.carbon.identity.event.IdentityEventException;
+import org.wso2.carbon.identity.event.event.Event;
+import org.wso2.carbon.identity.governance.service.notification.NotificationChannels;
 import org.wso2.carbon.identity.notification.push.common.PushChallengeValidator;
 import org.wso2.carbon.identity.notification.push.common.exception.PushTokenValidationException;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceHandlerService;
 import org.wso2.carbon.identity.notification.push.device.handler.DeviceRegistrationContextManager;
+import org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants;
 import org.wso2.carbon.identity.notification.push.device.handler.dao.DeviceDAO;
 import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerClientException;
 import org.wso2.carbon.identity.notification.push.device.handler.exception.PushDeviceHandlerException;
@@ -36,10 +45,13 @@ import org.wso2.carbon.identity.notification.push.device.handler.exception.PushD
 import org.wso2.carbon.identity.notification.push.device.handler.internal.PushDeviceHandlerDataHolder;
 import org.wso2.carbon.identity.notification.push.device.handler.model.Device;
 import org.wso2.carbon.identity.notification.push.device.handler.model.DeviceRegistrationContext;
+import org.wso2.carbon.identity.notification.push.device.handler.model.DeviceRegistrationNotificationChannelEnum;
+import org.wso2.carbon.identity.notification.push.device.handler.model.PushDeviceMgtConfigData;
 import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationDiscoveryData;
 import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationRequest;
 import org.wso2.carbon.identity.notification.push.device.handler.model.RegistrationRequestProviderData;
 import org.wso2.carbon.identity.notification.push.device.handler.utils.DeviceHandlerAuditLogger;
+import org.wso2.carbon.identity.notification.push.device.handler.utils.PushDeviceConfigManager;
 import org.wso2.carbon.identity.notification.push.provider.PushProvider;
 import org.wso2.carbon.identity.notification.push.provider.exception.PushProviderClientException;
 import org.wso2.carbon.identity.notification.push.provider.exception.PushProviderException;
@@ -52,7 +64,10 @@ import org.wso2.carbon.identity.organization.management.service.exception.Organi
 import org.wso2.carbon.identity.organization.management.service.util.OrganizationManagementUtil;
 import org.wso2.carbon.user.api.UserRealm;
 import org.wso2.carbon.user.api.UserStoreException;
+import org.wso2.carbon.user.core.UserCoreConstants;
 import org.wso2.carbon.user.core.common.AbstractUserStoreManager;
+import org.wso2.carbon.user.core.common.User;
+import org.wso2.carbon.utils.DiagnosticLog;
 import org.wso2.carbon.utils.multitenancy.MultitenantUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -64,13 +79,23 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
+import static org.wso2.carbon.identity.event.handler.notification.NotificationConstants.EmailNotification.ARBITRARY_SEND_TO;
+import static org.wso2.carbon.identity.event.handler.notification.NotificationConstants.EmailNotification.EMAIL_TEMPLATE_TYPE;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEFAULT_MIN_DEVICE_LIMIT_PER_USER;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEFAULT_PUSH_PROVIDER;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.EmailNotificationConstants.PUSH_DEVICE_REGISTRATION_TEMPLATE;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_ALREADY_REGISTERED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_NOT_FOUND;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID;
@@ -79,12 +104,27 @@ import static org.wso2.carbon.identity.notification.push.device.handler.constant
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_FAILED_TO_RESOLVE_PUSH_PROVIDER;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_INVALID_EDIT_DEVICE_SCENARIO;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_INVALID_SIGNATURE;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_MAX_DEVICE_LIMIT_REACHED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_PUBLIC_KEY_NOT_FOUND;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_REGISTRATION_CONTEXT_ALREADY_USED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_REGISTRATION_CONTEXT_NOT_FOUND;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_SIGNATURE_VERIFICATION_FAILED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_TOKEN_CLAIM_VERIFICATION_FAILED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.HASHING_ALGORITHM;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.LogConstants.ActionIDs.TRIGGER_DEVICE_REGISTRATION_EMAIL_NOTIFICATION;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.LogConstants.ActionIDs.TRIGGER_DEVICE_REGISTRATION_PUSH_NOTIFICATION;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.LogConstants.InputKeys.TENANT_DOMAIN;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.LogConstants.PUSH_DEVICE_HANDLER_SERVICE;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushNotificationConstants.DEVICE_HANDLE;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushNotificationConstants.DEVICE_ID;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushNotificationConstants.DEVICE_REGISTRATION_SCENARIO;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushNotificationConstants.DEVICE_TOKEN;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushNotificationConstants.IP_ADDRESS;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushNotificationConstants.NOTIFICATION_PROVIDER;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushNotificationConstants.NOTIFICATION_SCENARIO;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushNotificationConstants.PUSH_NOTIFICATION_CHANNEL;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.PushNotificationConstants.PUSH_NOTIFICATION_EVENT_NAME;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.REGISTRATION_TIME_FORMATTER_PATTERN;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.SIGNATURE_ALGORITHM;
 import static org.wso2.carbon.identity.notification.sender.tenant.config.NotificationSenderManagementConstants.PUSH_PUBLISHER_TYPE;
 
@@ -104,6 +144,8 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
     private DeviceDAO deviceDAO;
     private DeviceRegistrationContextManager deviceRegistrationContextManager;
     private static final DeviceHandlerAuditLogger AUDIT_LOGGER = new DeviceHandlerAuditLogger();
+    private static final DateTimeFormatter REGISTRATION_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern(REGISTRATION_TIME_FORMATTER_PATTERN).withZone(ZoneOffset.UTC);
 
     /**
      * Constructor of DeviceHandlerServiceImpl.
@@ -144,6 +186,12 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             throw new PushDeviceHandlerClientException(ERROR_CODE_REGISTRATION_CONTEXT_ALREADY_USED.getCode(),
                     String.format(ERROR_CODE_REGISTRATION_CONTEXT_ALREADY_USED.getMessage(), deviceId));
         }
+
+        AUDIT_LOGGER.printAuditLog(
+                DeviceHandlerAuditLogger.Operation.REGISTER_DEVICE,
+                deviceId,
+                device.getUserId()
+        );
 
         return device;
     }
@@ -238,6 +286,15 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             throw new PushDeviceHandlerClientException(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getCode(),
                     String.format(ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getMessage(), userId));
         }
+    }
+
+    @Override
+    public List<Device> getDevicesByUserId(String userId, String tenantDomain) throws PushDeviceHandlerException {
+
+        int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
+        List<Device> devices = deviceDAO.getDevicesByUserId(userId, tenantId);
+
+        return devices != null ? devices : Collections.emptyList();
     }
 
     @Override
@@ -367,39 +424,29 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
     private Device handleDeviceRegistration(RegistrationRequest registrationRequest,
                                             DeviceRegistrationContext context) throws PushDeviceHandlerException {
 
-        String userId;
         String username = context.getUsername();
         String tenantDomain = context.getTenantDomain();
         int tenantId = IdentityTenantUtil.getTenantId(tenantDomain);
-        try {
-            UserRealm userRealm = IdentityTenantUtil.getRealm(tenantDomain, username);
-            AbstractUserStoreManager userStoreManager = (AbstractUserStoreManager) userRealm.getUserStoreManager();
-            userId = userStoreManager.getUserIDFromUserName(MultitenantUtils.getTenantAwareUsername(username));
-            if (StringUtils.isBlank(userId)) {
-                String errorMessage = String.format(ERROR_CODE_FAILED_TO_GET_USER_ID.toString(), username);
-                throw new PushDeviceHandlerServerException(errorMessage);
-            }
-        } catch (UserStoreException | IdentityException e) {
-            String errorMessage = String.format(ERROR_CODE_FAILED_TO_GET_USER_ID.toString(), username);
-            throw new PushDeviceHandlerServerException(errorMessage, e);
-        }
 
-        try {
-            Device existingDevice = getDeviceByUserId(userId, tenantDomain);
-            if (existingDevice != null) {
+        PushDeviceMgtConfigData tenantConfig = PushDeviceConfigManager.getPushDeviceConfig(tenantDomain);
+        User user = resolveUser(username, tenantDomain, tenantConfig);
+        String userId = user.getUserID();
+
+        List<Device> existingDevices = deviceDAO.getDevicesByUserId(userId, tenantId);
+
+        // if multiple device enrollment is not enabled, check if the user already has a registered device
+        if (!Boolean.TRUE.equals(tenantConfig.getEnableMultipleDeviceEnrollment())) {
+            if (!existingDevices.isEmpty()) {
                 throw new PushDeviceHandlerClientException(
                         ERROR_CODE_DEVICE_ALREADY_REGISTERED.getCode(),
                         ERROR_CODE_DEVICE_ALREADY_REGISTERED.toString());
             }
-        } catch (PushDeviceHandlerClientException e) {
-            // This means there is no existing device registered for the user.
-            if ((ERROR_CODE_DEVICE_NOT_FOUND_FOR_USER_ID.getCode()).equals(e.getErrorCode())) {
-                if (LOG.isDebugEnabled()) {
-                    String message = String.format("No existing device registered for the user: %s", userId);
-                    LOG.debug(message);
-                }
-            } else {
-                throw e;
+        } else {
+            int maxDeviceLimit = tenantConfig.getMaximumDeviceLimit() != null
+                    ? tenantConfig.getMaximumDeviceLimit() : DEFAULT_MIN_DEVICE_LIMIT_PER_USER;
+            if (existingDevices.size() >= maxDeviceLimit) {
+                throw new PushDeviceHandlerClientException(ERROR_CODE_MAX_DEVICE_LIMIT_REACHED.getCode(),
+                        String.format(ERROR_CODE_MAX_DEVICE_LIMIT_REACHED.getMessage(), userId));
             }
         }
 
@@ -421,13 +468,62 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         try {
             deviceDAO.registerDevice(device, tenantId);
             context.setRegistered(true);
-        } catch (PushDeviceHandlerServerException e) {
+        } catch (PushDeviceHandlerException e) {
             String errorMessage = String.format(ERROR_CODE_DEVICE_REGISTRATION_FAILED.toString(),
                     registrationRequest.getDeviceId());
             throw new PushDeviceHandlerServerException(errorMessage, e);
         }
 
+        // Trigger notifications about the new device registration.
+        if (Boolean.TRUE.equals(tenantConfig.getEnableDeviceRegistrationNotifications())) {
+            Set<DeviceRegistrationNotificationChannelEnum> channels =
+                    tenantConfig.getDeviceRegistrationNotificationChannels();
+            if (channels != null && channels.contains(DeviceRegistrationNotificationChannelEnum.EMAIL)) {
+                triggerEmailNotification(device, tenantDomain, user);
+            }
+            if (channels != null && channels.contains(DeviceRegistrationNotificationChannelEnum.PUSH_NOTIFICATION)) {
+                triggerPushNotification(device, existingDevices, user, tenantDomain);
+            }
+        }
+
         return device;
+    }
+
+    /**
+     * Resolve the user owning the device registration, along with the claims
+     * required for the device registration notifications.
+     *
+     * @param username     Username from the device registration context.
+     * @param tenantDomain Tenant domain of the user.
+     * @return Resolved user; never {@code null}.
+     * @throws PushDeviceHandlerServerException If the user cannot be resolved.
+     */
+    private User resolveUser(String username, String tenantDomain, PushDeviceMgtConfigData tenantConfig)
+            throws PushDeviceHandlerServerException {
+
+        try {
+            UserRealm userRealm = IdentityTenantUtil.getRealm(tenantDomain, username);
+            AbstractUserStoreManager userStoreManager = (AbstractUserStoreManager) userRealm.getUserStoreManager();
+            String tenantAwareUsername = MultitenantUtils.getTenantAwareUsername(username);
+            String userId = userStoreManager.getUserIDFromUserName(tenantAwareUsername);
+            if (StringUtils.isBlank(userId)) {
+                String errorMessage = String.format(ERROR_CODE_FAILED_TO_GET_USER_ID.toString(), username);
+                throw new PushDeviceHandlerServerException(errorMessage);
+            }
+
+            User user;
+            if (Boolean.TRUE.equals(tenantConfig.getEnableDeviceRegistrationNotifications())) {
+                String[] requestedClaims = new String[] {NotificationChannels.EMAIL_CHANNEL.getClaimUri()};
+                user = userStoreManager.getUserWithID(userId, requestedClaims, UserCoreConstants.DEFAULT_PROFILE);
+            } else {
+                user = new User(userId, tenantAwareUsername, null);
+            }
+
+            return user;
+        } catch (UserStoreException | IdentityException e) {
+            String errorMessage = String.format(ERROR_CODE_FAILED_TO_GET_USER_ID.toString(), username);
+            throw new PushDeviceHandlerServerException(errorMessage, e);
+        }
     }
 
     /**
@@ -594,7 +690,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
                     String pushProvider = pushSenders.get(0).getProvider();
                     if (LOG.isDebugEnabled()) {
                         LOG.debug(String.format("Only one push sender is available: %s. " +
-                                        "Using it as the push provider.", pushProvider));
+                                "Using it as the push provider.", pushProvider));
                     }
                     return pushProvider;
                 }
@@ -609,7 +705,7 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
             LOG.debug("Error occurred while retrieving the default push notification provider", e);
             throw new PushDeviceHandlerServerException(
                     "Error occurred while retrieving the default push notification provider.", e);
-         }
+        }
     }
 
     /**
@@ -672,5 +768,204 @@ public class DeviceHandlerServiceImpl implements DeviceHandlerService {
         pushSenderData.setProperties(pushSenderDTO.getProperties());
         pushSenderData.setProviderId(pushSenderDTO.getProviderId());
         return pushSenderData;
+    }
+
+    /**
+     * Trigger an email notification informing the user that a new device has
+     * been registered for their account.
+     *
+     * @param device       Newly registered device.
+     * @param tenantDomain Tenant domain of the user.
+     * @param user         Resolved user, used to obtain the username and email claim.
+     */
+    private void triggerEmailNotification(Device device, String tenantDomain, User user) {
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug(String.format(
+                    "Sending device registration email notification for the device ID: %s.",
+                    device.getDeviceId()));
+        }
+
+        String userId = user.getUserID();
+        String email = getEmailAddress(user);
+        if (StringUtils.isBlank(email)) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Email address not found for userId: " + userId
+                        + ". Skipping device registration email notification.");
+            }
+            return;
+        }
+
+        HashMap<String, Object> properties = new HashMap<>();
+
+        properties.put(IdentityEventConstants.EventProperty.USER_NAME, user.getUsername());
+        properties.put(IdentityEventConstants.EventProperty.TENANT_DOMAIN, tenantDomain);
+        properties.put(IdentityEventConstants.EventProperty.USER_STORE_DOMAIN, user.getUserStoreDomain());
+
+        // Explicit recipient so the handler does not need to re-resolve claims.
+        properties.put(ARBITRARY_SEND_TO, email);
+
+        // Tell the notification handler which template to render.
+        properties.put(EMAIL_TEMPLATE_TYPE, PUSH_DEVICE_REGISTRATION_TEMPLATE);
+
+        // Custom placeholders the template can reference.
+        properties.put(PushDeviceHandlerConstants.EmailNotificationConstants.DEVICE_NAME_PLACEHOLDER,
+                device.getDeviceName());
+        properties.put(PushDeviceHandlerConstants.EmailNotificationConstants.DEVICE_MODEL_PLACEHOLDER,
+                device.getDeviceModel());
+        properties.put(PushDeviceHandlerConstants.EmailNotificationConstants.REGISTRATION_TIME_PLACEHOLDER,
+                formatRegistrationTime(System.currentTimeMillis()));
+        String ipAddress = resolveClientIpAddress();
+        if (StringUtils.isNotBlank(ipAddress)) {
+            properties.put(PushDeviceHandlerConstants.EmailNotificationConstants.IP_ADDRESS_PLACEHOLDER, ipAddress);
+        }
+
+        try {
+            Event event = new Event(IdentityEventConstants.Event.TRIGGER_NOTIFICATION, properties);
+            PushDeviceHandlerDataHolder.getInstance().getIdentityEventService().handleEvent(event);
+        } catch (IdentityEventException e) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Error while triggering device registration email "
+                        + "notification for userId: " + userId, e);
+            }
+
+            if (LoggerUtils.isDiagnosticLogsEnabled()) {
+                DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                        PUSH_DEVICE_HANDLER_SERVICE, TRIGGER_DEVICE_REGISTRATION_EMAIL_NOTIFICATION);
+                diagnosticLogBuilder
+                        .resultMessage("Error while triggering the device registration email notification.")
+                        .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION)
+                        .resultStatus(DiagnosticLog.ResultStatus.FAILED)
+                        .inputParam(PushDeviceHandlerConstants.LogConstants.InputKeys.DEVICE_ID, device.getDeviceId())
+                        .inputParam(PushDeviceHandlerConstants.LogConstants.InputKeys.USER_ID, userId)
+                        .inputParam(TENANT_DOMAIN, tenantDomain);
+                LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+            }
+        }
+    }
+
+    /**
+     * Get the email address from the resolved user.
+     *
+     * @param user Resolved user.
+     * @return Email address, or {@code null} if not available.
+     */
+    private String getEmailAddress(User user) {
+
+        Map<String, String> userAttributes = user.getAttributes();
+        if (MapUtils.isEmpty(userAttributes)) {
+            return null;
+        }
+        return userAttributes.get(NotificationChannels.EMAIL_CHANNEL.getClaimUri());
+    }
+
+    /**
+     * Trigger push notifications to the user's previously registered devices to
+     * notify that a new device has been registered for the account.
+     *
+     * @param registeredDevice Newly registered device.
+     * @param existingDevices  Previously registered devices of the user.
+     * @param user             Resolved user who owns the devices.
+     * @param tenantDomain     Tenant domain of the user.
+     */
+    private void triggerPushNotification(Device registeredDevice, List<Device> existingDevices, User user,
+                                         String tenantDomain) {
+
+        if (existingDevices == null || existingDevices.isEmpty()) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(String.format("No previously registered devices found to notify about "
+                                + "the registration of device ID: %s.",
+                        registeredDevice.getDeviceId()));
+            }
+            return;
+        }
+
+        String registrationTime = formatRegistrationTime(System.currentTimeMillis());
+        String ipAddress = resolveClientIpAddress();
+
+        HashMap<String, Object> properties = new HashMap<>();
+
+        // Standard identity event properties expected by the handler.
+        properties.put(IdentityEventConstants.EventProperty.USER_ID, registeredDevice.getUserId());
+        properties.put(IdentityEventConstants.EventProperty.USER_NAME, user.getUsername());
+        properties.put(IdentityEventConstants.EventProperty.USER_STORE_DOMAIN, user.getUserStoreDomain());
+        properties.put(IdentityEventConstants.EventProperty.TENANT_DOMAIN, tenantDomain);
+        properties.put(IdentityEventConstants.EventProperty.NOTIFICATION_CHANNEL, PUSH_NOTIFICATION_CHANNEL);
+        properties.put(NOTIFICATION_SCENARIO, DEVICE_REGISTRATION_SCENARIO);
+
+        // Details of the newly registered device rendered in the notification.
+        properties.put(PushDeviceHandlerConstants.PushNotificationConstants.DEVICE_NAME_PLACEHOLDER,
+                StringUtils.defaultString(registeredDevice.getDeviceName()));
+        properties.put(PushDeviceHandlerConstants.PushNotificationConstants.DEVICE_MODEL_PLACEHOLDER,
+                StringUtils.defaultString(registeredDevice.getDeviceModel()));
+        properties.put(PushDeviceHandlerConstants.PushNotificationConstants.REGISTRATION_TIME_PLACEHOLDER,
+                registrationTime);
+        if (StringUtils.isNotBlank(ipAddress)) {
+            properties.put(IP_ADDRESS, ipAddress);
+        }
+
+        for (Device device : existingDevices) {
+
+            // The notification is delivered to the previously registered device.
+            properties.put(NOTIFICATION_PROVIDER, device.getProvider());
+            properties.put(DEVICE_TOKEN, device.getDeviceToken());
+            properties.put(DEVICE_ID, device.getDeviceId());
+            properties.put(DEVICE_HANDLE, device.getDeviceHandle());
+
+            try {
+                Event event = new Event(PUSH_NOTIFICATION_EVENT_NAME, properties);
+                PushDeviceHandlerDataHolder.getInstance().getIdentityEventService().handleEvent(event);
+            } catch (IdentityEventException e) {
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(String.format(
+                            "Error while triggering the device registration push notification to the device ID: %s.",
+                            device.getDeviceId()), e);
+                }
+
+                if (LoggerUtils.isDiagnosticLogsEnabled()) {
+                    DiagnosticLog.DiagnosticLogBuilder diagnosticLogBuilder = new DiagnosticLog.DiagnosticLogBuilder(
+                            PUSH_DEVICE_HANDLER_SERVICE, TRIGGER_DEVICE_REGISTRATION_PUSH_NOTIFICATION);
+                    diagnosticLogBuilder
+                            .resultMessage("Error while triggering the device registration push notification.")
+                            .logDetailLevel(DiagnosticLog.LogDetailLevel.APPLICATION)
+                            .resultStatus(DiagnosticLog.ResultStatus.FAILED)
+                            .inputParam(PushDeviceHandlerConstants.LogConstants.InputKeys.DEVICE_ID,
+                                    device.getDeviceId())
+                            .inputParam(PushDeviceHandlerConstants.LogConstants.InputKeys.USER_ID,
+                                    registeredDevice.getUserId())
+                            .inputParam(TENANT_DOMAIN, tenantDomain);
+                    LoggerUtils.triggerDiagnosticLogEvent(diagnosticLogBuilder);
+                }
+            }
+        }
+    }
+
+    /**
+     * Resolve the client IP address of the current request.
+     *
+     * @return Client IP address, or {@code null} if it cannot be resolved.
+     */
+    private String resolveClientIpAddress() {
+
+        Request request = IdentityContext.getThreadLocalIdentityContext().getRequest();
+        if (request == null || StringUtils.isBlank(request.getIpAddress())) {
+            return null;
+        }
+
+        return request.getIpAddress();
+    }
+
+    /**
+     * Format a registration timestamp consistently across notification channels.
+     *
+     * @param time Registration time.
+     * @return Human-readable UTC timestamp.
+     */
+    private String formatRegistrationTime(long time) {
+
+        Instant instant = Instant.ofEpochMilli(time);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(REGISTRATION_TIME_FORMATTER_PATTERN)
+                .withZone(ZoneOffset.UTC);
+        return formatter.format(instant);
     }
 }
