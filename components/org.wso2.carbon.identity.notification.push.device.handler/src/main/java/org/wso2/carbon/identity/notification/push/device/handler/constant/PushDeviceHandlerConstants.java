@@ -51,6 +51,8 @@ public class PushDeviceHandlerConstants {
      */
     public static class EmailNotificationConstants {
 
+        public static final String ARBITRARY_SEND_TO = "send-to";
+        public static final String EMAIL_TEMPLATE_TYPE = "TEMPLATE_TYPE";
         public static final String PUSH_DEVICE_REGISTRATION_TEMPLATE = "PushDeviceRegistration";
 
         // Placeholders used in the template body
