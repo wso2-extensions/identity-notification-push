@@ -91,10 +91,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.wso2.carbon.identity.event.handler.notification.NotificationConstants.EmailNotification.ARBITRARY_SEND_TO;
-import static org.wso2.carbon.identity.event.handler.notification.NotificationConstants.EmailNotification.EMAIL_TEMPLATE_TYPE;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEFAULT_MIN_DEVICE_LIMIT_PER_USER;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.DEFAULT_PUSH_PROVIDER;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.EmailNotificationConstants.ARBITRARY_SEND_TO;
+import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.EmailNotificationConstants.EMAIL_TEMPLATE_TYPE;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.EmailNotificationConstants.PUSH_DEVICE_REGISTRATION_TEMPLATE;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_ALREADY_REGISTERED;
 import static org.wso2.carbon.identity.notification.push.device.handler.constant.PushDeviceHandlerConstants.ErrorMessages.ERROR_CODE_DEVICE_NOT_FOUND;
