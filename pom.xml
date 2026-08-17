@@ -386,9 +386,9 @@
         <nimbusds.osgi.version.range>[10.3.0,11.0.0)</nimbusds.osgi.version.range>
         <json-smart.version>2.4.10</json-smart.version>
         <json-smart.osgi.version.range>[2.3.0,3.0.0)</json-smart.osgi.version.range>
-        <httpclient5.version>5.4.1.wso2v1</httpclient5.version>
+        <httpclient5.version>5.6.3.wso2v1</httpclient5.version>
         <httpclient5.osgi.version.range>[5.0.0,6.0.0)</httpclient5.osgi.version.range>
-        <httpcore5.version>5.3.1.wso2v1</httpcore5.version>
+        <httpcore5.version>5.4.3.wso2v1</httpcore5.version>
         <httpcore5.osgi.version.range>[5.0.0,6.0.0)</httpcore5.osgi.version.range>
         <commons.logging.version>1.2</commons.logging.version>
         <org.apache.commons.logging.range>[1.2.0,2.0.0)</org.apache.commons.logging.range>
