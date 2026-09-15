@@ -395,7 +395,7 @@
         <json.wso2.version>3.0.0.wso2v4</json.wso2.version>
         <json.wso2.version.range>[3.0.0.wso2v1, 4.0.0)</json.wso2.version.range>
 
-        <firebase-admin.version>9.4.2.wso2v2</firebase-admin.version>
+        <firebase-admin.version>9.8.0.wso2v1</firebase-admin.version>
         <api-common.version>2.42.0.wso2v1</api-common.version>
 
         <maven.checkstyleplugin.version>3.1.0</maven.checkstyleplugin.version>
